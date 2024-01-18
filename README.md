@@ -34,3 +34,8 @@ KERNEL=="ttyUSB[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb-serial", GROUP="usb_s
 Внимание! Это правило применятся ко всем последовательным USB устройствам.
 Чтобы ограничить его, можно использовать ATTRS.
 
+## Добавление платы
+```bash
+make setup
+```
+
