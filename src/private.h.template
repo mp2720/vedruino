@@ -1,0 +1,14 @@
+#pragma once
+
+#define WIFI_SSID ""
+#define WIFI_PASSWD ""
+
+#define HOST ""
+
+#define MQTT_PORT 0
+#define MQTT_USERNAME ""
+#define MQTT_PASSWORD ""
+
+/*
+Скопировать как private.h и прописать данные
+*/

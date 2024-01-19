@@ -1,43 +1,57 @@
-/*
-  Blink
-
-  Turns an LED on for one second, then off for one second, repeatedly.
-
-  Most Arduinos have an on-board LED you can control. On the UNO, MEGA and ZERO
-  it is attached to digital pin 13, on MKR1000 on pin 6. LED_BUILTIN is set to
-  the correct LED pin independent of which board is used.
-  If you want to know what pin the on-board LED is connected to on your Arduino
-  model, check the Technical Specs of your board at:
-  https://www.arduino.cc/en/Main/Products
-
-  modified 8 May 2014
-  by Scott Fitzgerald
-  modified 2 Sep 2016
-  by Arturo Guadalupi
-  modified 8 Sep 2016
-  by Colby Newman
-
-  This example code is in the public domain.
-
-  https://www.arduino.cc/en/Tutorial/BuiltInExamples/Blink
-*/
-
 #include <Arduino.h>
+#include <WiFi.h>
 
-#define LED_BUILTIN 2
+#include "fl_esp_mqtt.h"
+#include "private.h"
 
-// the setup function runs once when you press reset or power the board
-void setup() {
-  // initialize digital pin LED_BUILTIN as an output.
-  pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(9600);
+void echo_qos0(const char * topic, const char * data, size_t size) {
+    fl_mqtt_publish("echo/0", data, size, 0, 0);
 }
 
-// the loop function runs over and over again forever
+void echo_qos1(const char * topic, const char * data, size_t size) {
+    fl_mqtt_publish("echo/1", data, size, 1, 0);
+}
+
+void echo_qos2(const char * topic, const char * data, size_t size) {
+    fl_mqtt_publish("echo/2", data, size, 2, 0);
+}
+
+#define QOS 0
+fl_topic_t topics_set[] = { //{"name", callback_t, qos}
+    {"test/0", echo_qos0, 0},
+    {"test/1", echo_qos1, 1},
+    {"test/2", echo_qos2, 2},
+};
+
+void setup() {
+    Serial.begin(115200);
+
+    delay(1000);
+
+    WiFi.mode(WIFI_STA); //Optional
+    WiFi.begin(WIFI_SSID, WIFI_PASSWD);
+    puts("\nConnecting WIFI");
+    while(WiFi.status() != WL_CONNECTED){
+        printf(".");
+        delay(100);
+    }
+    puts("\nConnected to the WiFi network");
+    printf("Local ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
+
+
+    fl_mqtt_init();
+    fl_mqtt_connect(HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD);
+    puts("\nConnecting MQTT");
+    while (fl_mqtt_is_connected() != 1){
+        printf(".");
+        delay(100);
+    }
+    puts("\nConnected to the MQTT broker");
+
+    fl_mqtt_subscribe_topics(topics_set, sizeof(topics_set)/sizeof(topics_set[0]));
+
+}
+
 void loop() {
-    Serial.print("a\n");
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(2000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(2000);                       // wait for a second
+    delay(1000);
 }
