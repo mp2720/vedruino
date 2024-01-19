@@ -86,8 +86,8 @@ make updcc
 ```
 
 <details>
-<summary>Если `adbc` не работает</summary>
-Если с `adbc` будут какие-то проблемы, то можно достать `compile_commands.json` из
+<summary>Если `acdb` не работает</summary>
+Если с `acdb` будут какие-то проблемы, то можно достать `compile_commands.json` из
 `/tmp/arduino/sketches/%SKETCH_ID%/` после выполнения команды:
 
 ```bash

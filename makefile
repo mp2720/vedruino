@@ -6,7 +6,7 @@ setup:
 	arduino-cli board attach -p ${PORT} -b ${FQBN}
 
 updcc:
-	adbc
+	acdb
 	python comp_coms_halalizer.py
 
 build:
