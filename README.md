@@ -1,3 +1,9 @@
+`comp_coms_halalizer.py` - для халялизации `compile_commands.json`.
+
+`vedruino.ino` - без него `arduino-cli` не может.
+
+`src/` - весь код здесь и никаких `.ino`, `.pde`.
+
 # Установка
 Необходимы `make`, `arduino-cli`, `pyserial`.
 
@@ -118,4 +124,6 @@ require 'lspconfig'.clangd.setup({
 ```bash
 arduino-cli config init
 ```
+
+Дальше всё понятно.
 
