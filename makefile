@@ -5,6 +5,10 @@ include config
 setup:
 	arduino-cli board attach -p ${PORT} -b ${FQBN}
 
+updcc:
+	adbc
+	python comp_coms_halalizer.py
+
 build:
 	arduino-cli compile
 
