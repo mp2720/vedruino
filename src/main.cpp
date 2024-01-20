@@ -25,6 +25,7 @@ fl_topic_t topics_set[] = { //{"name", callback_t, qos}
 
 void setup() {
     Serial.begin(115200);
+    puts("start \"void setup();\"");
 
     delay(1000);
 
@@ -32,7 +33,7 @@ void setup() {
     WiFi.begin(WIFI_SSID, WIFI_PASSWD);
     puts("\nConnecting WIFI");
     while(WiFi.status() != WL_CONNECTED){
-        printf(".");
+        printf("."); fflush(stdout);
         delay(100);
     }
     puts("\nConnected to the WiFi network");
@@ -43,12 +44,15 @@ void setup() {
     fl_mqtt_connect(HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD);
     puts("\nConnecting MQTT");
     while (fl_mqtt_is_connected() != 1){
-        printf(".");
+        printf("."); fflush(stdout);
         delay(100);
     }
     puts("\nConnected to the MQTT broker");
 
     fl_mqtt_subscribe_topics(topics_set, sizeof(topics_set)/sizeof(topics_set[0]));
+    puts("Subscribed");
+
+    puts("end of \"void setup();\"");
 
 }
 

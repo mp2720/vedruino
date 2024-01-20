@@ -32,7 +32,7 @@ void fl_mqtt_init();
 //Подключиться к брокеру на mqtt://broker_host:broker_port, с аутентификацией
 void fl_mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
 
-//Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные топики по имени
+//Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные топики
 void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len); 
 
 //Отписаться от топика

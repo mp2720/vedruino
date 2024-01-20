@@ -47,7 +47,7 @@ static int _topic_pair_cmp(const void * a, const void * b) {
 }
 
 void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len) {
-    if(xSemaphoreTake(topics_mutex, 1000/portTICK_PERIOD_MS) == pdTRUE) {
+    if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         for(int i=0;i<subs_topics.size;i++) {
             if(esp_mqtt_client_unsubscribe(mqtt_client, subs_topics.pairs[i].name) == -1) {
                 ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
@@ -66,7 +66,7 @@ void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len) {
 }
 
 static fl_topic_t * find_callback(const char * name) {
-    if(xSemaphoreTake(topics_mutex, 1000/portTICK_PERIOD_MS) == pdTRUE) {
+    if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         fl_topic_t search_tmp_topic = {.name = name};
         fl_topic_t * pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), _topic_pair_cmp);
         xSemaphoreGive(topics_mutex);
@@ -78,7 +78,7 @@ static fl_topic_t * find_callback(const char * name) {
 }
 
 void fl_mqtt_unsubscribe_topic(const char * name) {
-    if(xSemaphoreTake(topics_mutex, 1000/portTICK_PERIOD_MS ) == pdTRUE) {
+    if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000) ) == pdTRUE) {
         fl_topic_t search_tmp_topic = {.name = name};
         fl_topic_t * target_pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), _topic_pair_cmp);
         if(target_pair) {
