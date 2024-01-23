@@ -40,9 +40,10 @@ static struct {
     fl_topic_t * pairs;
     int size;
 } subs_topics = {.pairs = NULL, .size = 0};
-SemaphoreHandle_t topics_mutex;
 
-static int _topic_pair_cmp(const void * a, const void * b) {
+static SemaphoreHandle_t topics_mutex;
+
+static int topic_pair_cmp(const void * a, const void * b) {
     return strcmp(((const fl_topic_t*)a)->name, ((const fl_topic_t*)b)->name);
 }
 
@@ -55,7 +56,7 @@ void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len) {
         }
         subs_topics.pairs = topics;
         subs_topics.size = len;
-        qsort(subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), _topic_pair_cmp);
+        qsort(subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), topic_pair_cmp);
         for(int i=0;i<subs_topics.size;i++) {
             esp_mqtt_client_subscribe(mqtt_client, (char*)subs_topics.pairs[i].name, subs_topics.pairs[i].qos);
         }
@@ -68,7 +69,7 @@ void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len) {
 static fl_topic_t * find_callback(const char * name) {
     if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         fl_topic_t search_tmp_topic = {.name = name};
-        fl_topic_t * pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), _topic_pair_cmp);
+        fl_topic_t * pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), topic_pair_cmp);
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
@@ -80,7 +81,7 @@ static fl_topic_t * find_callback(const char * name) {
 void fl_mqtt_unsubscribe_topic(const char * name) {
     if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000) ) == pdTRUE) {
         fl_topic_t search_tmp_topic = {.name = name};
-        fl_topic_t * target_pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), _topic_pair_cmp);
+        fl_topic_t * target_pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), topic_pair_cmp);
         if(target_pair) {
             if(esp_mqtt_client_unsubscribe(mqtt_client, name) == -1) {
                 ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
@@ -112,7 +113,7 @@ struct mqtt_callback_item {
 
 #define CB_TASK_STACK_SIZE 8192
 #define CB_TASK_QUEUE_LENGTH 10
-struct {
+static struct {
     struct {
         TaskHandle_t handle;
         StaticTask_t buffer;
@@ -124,7 +125,6 @@ struct {
         uint8_t storage[CB_TASK_QUEUE_LENGTH * sizeof(struct mqtt_callback_item)];   
     } queue;
 } cb_task;
-
 
 static void mqtt_callback_task(void * pvParameters) {
     struct mqtt_callback_item args;
@@ -141,6 +141,7 @@ static void mqtt_callback_task(void * pvParameters) {
 static void mqtt_event_handler(void * handler_args, esp_event_base_t base, int32_t event_id, void * event_data) {
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     switch (event->event_id) {
+
         case MQTT_EVENT_CONNECTED: {
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
             mqtt_connect_flag = 1;
@@ -229,7 +230,6 @@ static esp_err_t mqtt_event_handler_legacy(esp_mqtt_event_handle_t event) {
 #endif
 
 void fl_mqtt_init() {
-
     cb_task.queue.handle = xQueueCreateStatic( 
         CB_TASK_QUEUE_LENGTH, 
         sizeof(struct mqtt_callback_item), 
@@ -245,6 +245,7 @@ void fl_mqtt_init() {
         cb_task.task.stack, 
         &cb_task.task.buffer
     );
+
     topics_mutex = xSemaphoreCreateMutex();
     
     ESP_LOGI(TAG, "initialized");
@@ -294,14 +295,14 @@ void fl_mqtt_disconnect() {
 
 void fl_mqtt_stop() {
     esp_err_t res = esp_mqtt_client_stop(mqtt_client);
-    if (res != ESP_OK) ESP_LOGE(TAG, "fl_mqtt_stop() fail: %d", res);
+    if (res != ESP_OK) ESP_LOGE(TAG, "esp_mqtt_client_stop fail: %d", res);
     if (cb_task.task.handle) vTaskSuspend(cb_task.task.handle);
 }
 
 void fl_mqtt_resume() {
     if (cb_task.task.handle) vTaskResume(cb_task.task.handle);
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
-    if (res != ESP_OK) ESP_LOGE(TAG, "fl_mqtt_resume() fail: %d", res);
+    if (res != ESP_OK) ESP_LOGE(TAG, "esp_mqtt_client_start fail: %d", res);
 }
 
 bool fl_mqtt_is_connected() {

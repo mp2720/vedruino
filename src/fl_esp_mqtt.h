@@ -12,14 +12,16 @@
 #endif
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(3, 0, 0)
-#error ESP_IDF_VERSION < 3.0.0 убери это говно
+    #error ESP_IDF_VERSION < 3.0.0 убери это говно
 #endif
 
 //handle для использования других инструментов
 extern esp_mqtt_client_handle_t mqtt_client; 
 
+//Тип функции вызываемой при получении сообщения на подписанный топик
 typedef void (*callback_t)(const char *, const char *, size_t); //(char * topic, char * data, size_t data_size)
 
+//Структура топика
 typedef struct {
     const char * name;    //имя топика
     callback_t callback;  //функция которая будет вызвана при получении сообщения на данный топик    

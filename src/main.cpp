@@ -16,7 +16,6 @@ void echo_qos2(const char * topic, const char * data, size_t size) {
     fl_mqtt_publish("echo/2", data, size, 2, 0);
 }
 
-#define QOS 0
 fl_topic_t topics_set[] = { //{"name", callback_t, qos}
     {"test/0", echo_qos0, 0},
     {"test/1", echo_qos1, 1},
