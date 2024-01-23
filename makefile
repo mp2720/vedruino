@@ -8,7 +8,7 @@ BAUD=$(shell python tools/conf.py -g arduino.baud)
 src/conf.h: conf/config.ini
 	tools/conf.py -c
  
-build/${REPONAME}.ino.bin: $(SRC)
+build/${REPONAME}.ino.bin: $(SRC) conf
 	arduino-cli compile --build-path ./build
 
 .PHONY: clean cleanall setup build updcc flash monitor all
