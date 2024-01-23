@@ -3,4 +3,6 @@ compile_commands.json
 .cache/
 build/
 .vscode/
+src/conf.h
+.clangd
 

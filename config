@@ -1,3 +1,0 @@
-PORT=/dev/ttyUSB0
-FQBN=esp32:esp32:esp32da
-
