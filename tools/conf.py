@@ -65,9 +65,9 @@ if args.gen_cpp:
 #define WIFI_SSID "{escape_str(conf['wifi']['ssid'])}"
 #define WIFI_PASSWD "{escape_str(conf['wifi']['password'])}"
 
-#define MQQT_HOST "{escape_str(conf['mqqt']['host'])}"
-#define MQQT_USER "{escape_str(conf['mqqt']['user'])}"
-#define MQQT_PASSWD "{escape_str(conf['mqqt']['password'])}"
+#define MQTT_HOST "{escape_str(conf['mqtt']['host'])}"
+#define MQTT_USER "{escape_str(conf['mqtt']['user'])}"
+#define MQTT_PASSWD "{escape_str(conf['mqtt']['password'])}"
 
 #define OTA_HOST "{escape_str(conf['ota']['host'])}"
 #define OTA_TOKEN "{escape_str(conf['ota']['board_token'])}"
