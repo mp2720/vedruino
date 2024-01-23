@@ -26,7 +26,8 @@ setup:
 
 build: build/${REPONAME}.ino.bin
 
-updcc: clean build
+updcc:
+	arduino-cli compile --only-compilation-database --build-path ./build
 	tools/compile_commands.py < build/compile_commands.json > compile_commands.json
 
 flash: build
