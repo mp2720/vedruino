@@ -5,4 +5,6 @@ build/
 .vscode/
 src/conf.h
 .clangd
-
+src/ota_ver.h
+*/__pycache__/
+conf/
