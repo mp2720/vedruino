@@ -1,37 +1,7 @@
-`comp_coms_halalizer.py` - для халялизации `compile_commands.json`.
+# Подготовка
+Нужны `make`, `pyserial`, `arduino-cli` и пакеты Arduino для ESP32.
 
-`vedruino.ino` - без него `arduino-cli` не может.
-
-`src/` - весь код здесь и никаких `.ino`, `.pde`.
-
-# Установка
-Необходимы `make`, `arduino-cli`, `pyserial`.
-
-Arch:
-```bash
-pacman -S make arduino-cli python-pyserial
-```
-
-# Конфиг
-В файл `config` написать (значения переменных могут отличаться):
-```makefile
-PORT=/dev/ttyUSB0
-FQBN=esp32:esp32:esp32da
-```
-
-FQBN можно посмотреть в выводе
-```
-arduino-cli board listall BOARD_NAME
-```
-
-<details>
-<summary>Про `sketch.yaml`</summary>
-`sketch.yaml` будет сгенерирован автоматически после добавления платы и будет содержать те же поля,
-что и `config`, но, эти значения умеют доставать из `sketch.yaml` не все команды `arduino-cli` и не
-всегда, поэтому они передаются явно в `makefile`.
-</details>
-
-# Доступ к устройству
+## Доступ к serial usb
 Создание группы `usb_serial` и добавление пользователя:
 ```bash
 groupadd usb_serial
@@ -47,57 +17,25 @@ KERNEL=="ttyUSB[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb-serial", GROUP="usb_s
 Внимание! Это правило применятся ко всем последовательным USB устройствам.
 Чтобы ограничить его, можно использовать ATTRS.
 
-# Добавление платы
+## Конфигурация
+Нужно скопировать `config.ini.example` в `config.ini` и указать нужные значения.
+
+FQBN посмотреть так:
+```bash
+arduino-cli board listall BOARD_NAME
+```
+
+Затем:
 ```bash
 make setup
 ```
 
-# Arduino IDE 1/2
-Это полное говно, лучше хотя бы vscode.
-
-# LSP
-Сначала нужно добавить плату.
-
-Можно использовать `clangd` или `arduino-language-server` (обёртка над `clangd`).
-Первый вариант имеет следующие преимущества:
-
-* Намного быстрее запускается и реагирует на изменения в коде.
-* Не игнорирует `.clang-format` и (наверное) `.clangd`.
-* Можно поменять параметры комплиятора, например включить предупреждения (которые в
-  `arduino-language-server` отключены и способа это изменить разработчики не предусмотрели).
-* С `arduino-language-server` по какой-то причине хуже работает `nvim` и его плагины.
-
-В остальном всё примерно одинаково.
-
-Тем не менее, вероятность того, что `arduino-language-server` будет работать хоть как-то больше.
-
-## clangd
-Необходимо установить `acdb`:
-```bash
-git clone https://github.com/mp1884/acdb
-mkdir ./acdb/build && cd ./acdb/build
-cmake -S.. -B. -DCMAKE_INSTALL_PREFIX=~/.local
-make install
-```
-
-Затем в директории этого репозитория обновить `compile_commands.json`:
+# clangd
+В начале использования и после добавления любого C/C++ файла, который должен обрабатываться clangd
+нужно сгенерировать новый `compile_commands.json`:
 ```bash
 make updcc
 ```
-
-<details>
-<summary>Если `acdb` не работает</summary>
-Если с `acdb` будут какие-то проблемы, то можно достать `compile_commands.json` из
-`/tmp/arduino/sketches/%SKETCH_ID%/` после выполнения команды:
-
-```bash
-arduino-cli compile --only-compilation-database
-```
-
-Где взять `%SKETCH_ID%` - непонятно. Затем нужно запускать `python comp_coms_halalizer.py`.
-</details>
-
-Эту же команду нужно выполнять после добавления каждого `.cpp` (возможно и `.h`) файла .
 
 Запускать `clangd` так:
 ```bash
@@ -117,13 +55,38 @@ require 'lspconfig'.clangd.setup({
 })
 ```
 
-Параметры компилятора можно передавать через `EXTRA_ARGS` в `comp_coms_halalizer.py`.
+## In included files ... typedef redefinition
+Если такую ошибку будет выдавать clangd при подключении заголовочных файлов (`WiFi.h`), то можно
+выключить сообщения о переопределении typedef, написав в `.clangd`:
+```yaml
+Diagnostics:
+  Suppress: 'err_redefinition_different_typedef'
+```
 
-## [arduino-language-server](https://github.com/arduino/arduino-language-server)
+Список ошибок и предупреждений можно найти в этом [файле](https://github.com/llvm/llvm-project/blob/main/clang/include/clang/Basic/DiagnosticSemaKinds.td)
+или где-то рядом с ним.
+
+Но сейчас конкретно эта проблема решена другим способом: передавать clangd `-DSSIZE_MAX=...`
+(в `compile_commands.py`).
+
+# [arduino-language-server](https://github.com/arduino/arduino-language-server)
 Нужно сгенерировать конфиг, если его еще нет:
 ```bash
 arduino-cli config init
 ```
 
 Дальше всё понятно.
+
+# TCP OTA
+На плате работает TCP сервер, принимающий запросы на обновление.
+В `config.ini` его можно выключить (`tcp_ota.enabled=false`) и задать порт
+(по умолчанию `tcp_ota.port=5256`).
+
+С компьютера отправить запрос на обновление можно так (берёт данные из конфига):
+```
+make ota
+```
+
+Работает довольно быстро (у меня ~700kB за 7 секунд загружает, по usb ~6.4 секунды).
+Можно ускорить если использовать сжатие и многопоточность, но это пока не реализовано.
 

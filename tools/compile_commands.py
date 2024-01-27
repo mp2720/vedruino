@@ -1,22 +1,24 @@
-import json
+#!/usr/bin/python
 
-COMP_COMS_PATH = "./compile_commands.json"
+import json
+import sys
+
 FLAGS_WHITELIST = (
         "-I",
         "-D",
         "-o",
         "-Wa",
         "-Wdeprecated",
-        "-Wp"
+        "-Wp",
         )
 EXTRA_ARGS = (
         "-Wall",
         "-Wextra",
-        "-std=c++11"
+        # "-std=c++11",
+        "-DSSIZE_MAX=2147483647"
         )
 
-with open(COMP_COMS_PATH) as f:
-    dic = json.load(f)
+dic = json.load(sys.stdin)
 
 
 def args_filter(arg: str) -> bool:
@@ -33,6 +35,5 @@ for entry in dic:
         if arg not in entry["arguments"]:
             entry["arguments"].append(arg)
 
-with open(COMP_COMS_PATH, "w") as f:
-    json.dump(dic, f, indent=4)
+json.dump(dic, sys.stdout, indent=4)
 

@@ -1,43 +1,39 @@
-/*
-  Blink
-
-  Turns an LED on for one second, then off for one second, repeatedly.
-
-  Most Arduinos have an on-board LED you can control. On the UNO, MEGA and ZERO
-  it is attached to digital pin 13, on MKR1000 on pin 6. LED_BUILTIN is set to
-  the correct LED pin independent of which board is used.
-  If you want to know what pin the on-board LED is connected to on your Arduino
-  model, check the Technical Specs of your board at:
-  https://www.arduino.cc/en/Main/Products
-
-  modified 8 May 2014
-  by Scott Fitzgerald
-  modified 2 Sep 2016
-  by Arturo Guadalupi
-  modified 8 Sep 2016
-  by Colby Newman
-
-  This example code is in the public domain.
-
-  https://www.arduino.cc/en/Tutorial/BuiltInExamples/Blink
-*/
-
+#include "conf.h"
+#include "lib/log.h"
+#include "lib/misc.h"
+#include "lib/ota.h"
 #include <Arduino.h>
+#include <WiFi.h>
 
-#define LED_BUILTIN 2
+#define MAIN_LOGI(...) VDR_LOGI("main", __VA_ARGS__)
 
-// the setup function runs once when you press reset or power the board
 void setup() {
-  // initialize digital pin LED_BUILTIN as an output.
-  pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(9600);
+    Serial.begin(CONF_BAUD);
+
+    MAIN_LOGI("executing startup delay");
+    delay(CONF_STARTUP_DELAY);
+
+    char running_part[MISC_PART_LABEL_SIZE];
+    misc_running_partition(running_part);
+    MAIN_LOGI("running %s", running_part);
+    MAIN_LOGI("built on " __DATE__ " at " __TIME__);
+
+    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
+    MAIN_LOGI("connecting to %s...", CONF_WIFI_SSID);
+    MAIN_LOGI("board MAC: %s", WiFi.macAddress().c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(100);
+    }
+    MAIN_LOGI("WiFi connection established");
+    MAIN_LOGI("board IP: %s", WiFi.localIP().toString().c_str());
+
+#if CONF_TCP_OTA_ENABLED
+    tcp_ota_start_server(CONF_TCP_OTA_PORT);
+#endif
+
+    MAIN_LOGI("setup() finished");
 }
 
-// the loop function runs over and over again forever
 void loop() {
-    Serial.print("a\n");
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(2000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(2000);                       // wait for a second
+    delay(10000);
 }

@@ -3,4 +3,8 @@ compile_commands.json
 .cache/
 build/
 .vscode/
+src/conf.h
+.clangd
+*/__pycache__/
+config.ini
 
