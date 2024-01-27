@@ -14,7 +14,7 @@ FLAGS_WHITELIST = (
 EXTRA_ARGS = (
         "-Wall",
         "-Wextra",
-        "-std=c++11",
+        # "-std=c++11",
         "-DSSIZE_MAX=2147483647"
         )
 

@@ -6,31 +6,31 @@
 
 #define VDR_LOGE(tag, ...)                                                                         \
     {                                                                                              \
-        Serial.printf("ERR [%s]: ", tag);                                                          \
-        Serial.printf(__VA_ARGS__);                                                                \
-        Serial.print("\n");                                                                        \
+        printf("ERR [%s]: ", tag);                                                                 \
+        printf(__VA_ARGS__);                                                                       \
+        printf("\n");                                                                              \
     }
 #define VDR_LOGW(tag, ...)                                                                         \
     {                                                                                              \
-        Serial.printf("WARN [%s]: ", tag);                                                          \
-        Serial.printf(__VA_ARGS__);                                                                \
-        Serial.print("\n");                                                                        \
+        printf("WARN [%s]: ", tag);                                                                \
+        printf(__VA_ARGS__);                                                                       \
+        printf("\n");                                                                              \
     }
 #define VDR_LOGI(tag, ...)                                                                         \
     {                                                                                              \
-        Serial.printf("INFO [%s]: ", tag);                                                          \
-        Serial.printf(__VA_ARGS__);                                                                \
-        Serial.print("\n");                                                                        \
+        printf("INFO [%s]: ", tag);                                                                \
+        printf(__VA_ARGS__);                                                                       \
+        printf("\n");                                                                              \
     }
 #define VDR_LOGV(tag, ...)                                                                         \
     {                                                                                              \
-        Serial.printf("VERB [%s]: ", tag);                                                          \
-        Serial.printf(__VA_ARGS__);                                                                \
-        Serial.print("\n");                                                                        \
+        printf("VERB [%s]: ", tag);                                                                \
+        printf(__VA_ARGS__);                                                                       \
+        printf("\n");                                                                              \
     }
 #define VDR_LOGD(tag, ...)                                                                         \
     {                                                                                              \
-        Serial.printf("DBG [%s]: ", tag);                                                          \
-        Serial.printf(__VA_ARGS__);                                                                \
-        Serial.print("\n");                                                                        \
+        printf("DBG [%s]: ", tag);                                                                 \
+        printf(__VA_ARGS__);                                                                       \
+        printf("\n");                                                                              \
     }

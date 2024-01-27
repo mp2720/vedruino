@@ -6,7 +6,7 @@ import sys
 
 from helpers import escape_str
 
-CONF_PATH = "./conf/config.ini"
+CONF_PATH = "./config.ini"
 
 conf = configparser.ConfigParser()
 if not conf.read(CONF_PATH):
@@ -55,19 +55,15 @@ if __name__ == "__main__":
         print(value)
     
     if args.gen_cpp:
-        with open(conf['ota']['cert_path']) as f:
-            cert = f.read()
-            
         conf_h = f"""/*
  * Файл сгенерирован автоматически с помощью tools/conf.py
- * Изменять нужно conf/config.ini
+ * Изменять нужно ./config.ini
  */
 
 #pragma once
 
-#define CONF_UTC_OFFSET {conf['common']['utc_offset']}
-
-#define CONF_BAUD {conf['arduino']['baud']}
+#define CONF_BAUD {conf['board']['baud']}
+#define CONF_STARTUP_DELAY {int(conf['board']['startup_delay'])}
 
 #define CONF_WIFI_SSID "{escape_str(conf['wifi']['ssid'])}"
 #define CONF_WIFI_PASSWD "{escape_str(conf['wifi']['password'])}"
@@ -76,12 +72,8 @@ if __name__ == "__main__":
 #define CONF_MQTT_USER "{escape_str(conf['mqtt']['user'])}"
 #define CONF_MQTT_PASSWD "{escape_str(conf['mqtt']['password'])}"
 
-#define CONF_OTA_ENABLED {int(conf['ota']['enabled'] == 'true')}
-#define CONF_OTA_HOST "{escape_str(conf['ota']['host'])}"
-#define CONF_OTA_TOKEN "{escape_str(conf['ota.board']['token'])}"
-#define CONF_OTA_REPO "{escape_str(conf['common']['repo_name'])}"
-#define CONF_OTA_CERT "{escape_str(cert)}"
-#define CONF_OTA_RETRIES {int(conf['ota.board']['retries'])}
+#define CONF_TCP_OTA_ENABLED {int(conf['tcp_ota']['enabled'] == 'true')}
+#define CONF_TCP_OTA_PORT {int(conf['tcp_ota']['port'])}
 """
         with open("src/conf.h", "w+") as f:
             f.write(conf_h)

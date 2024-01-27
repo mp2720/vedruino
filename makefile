@@ -1,24 +1,28 @@
 SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h')
 
-REPONAME=$(shell python tools/config.py -g common:repo_name)
-PORT=$(shell python tools/config.py -g arduino:port)
-FQBN=$(shell python tools/config.py -g arduino:fqbn)
-BAUD=$(shell python tools/config.py -g arduino:baud)
+SKETCH=$(shell tools/config.py -g arduino:sketch_name)
+PORT=$(shell tools/config.py -g board:port)
+FQBN=$(shell tools/config.py -g board:fqbn)
+BAUD=$(shell tools/config.py -g board:baud)
+BOARD_IP=$(shell tools/config.py -g board:ip)
+OTA_PORT=$(shell tools/config.py -g tcp_ota:port)
+
+BIN_PATH=build/${SKETCH}.ino.bin
 
 ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maximum_size=1966080
 
-src/conf.h: conf/config.ini
+src/conf.h: config.ini
 	tools/config.py -c
  
-build/${REPONAME}.ino.bin: $(SRC)
+build/${SKETCH}.ino.bin: $(SRC)
 	arduino-cli compile ${ARDUINO_COMPILE_FLAGS} --build-path ./build
 
-.PHONY: clean cleanall setup build updcc flash monitor all ota
+.PHONY: conf clean cleanall setup build updcc flash monitor ota all
 
 conf: src/conf.h
 
 clean:
-	rm -f build/${REPONAME}.ino.bin
+	rm -f ${BIN_PATH}
 
 cleanall:
 	rm -rf build src/conf.h
@@ -26,7 +30,7 @@ cleanall:
 setup:
 	arduino-cli board attach -p ${PORT} -b ${FQBN}
 
-build: build/${REPONAME}.ino.bin conf
+build: ${BIN_PATH} conf
 
 updcc:
 	arduino-cli compile --only-compilation-database --build-path ./build
@@ -39,10 +43,8 @@ monitor:
 	arduino-cli monitor -p ${PORT} --config baudrate=${BAUD}
 	clear
 
-ota:
-	$(eval ID := $(shell tools/ota.py new))
-	make build
-	tools/ota.py pub -i ${ID}
+ota: build
+	tools/ota.py -i ${BOARD_IP} -p ${OTA_PORT} ${BIN_PATH}
 
 all: build flash monitor
 
