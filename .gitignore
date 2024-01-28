@@ -3,4 +3,4 @@ compile_commands.json
 .cache/
 build/
 .vscode/
-src/private.h
+src/config.h

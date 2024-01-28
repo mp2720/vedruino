@@ -3,6 +3,8 @@
 #define WIFI_SSID ""
 #define WIFI_PASSWD ""
 
+#define LOG_HOST ""
+#define LOG_PORT ""
 
 #define MQTT_HOST ""
 #define MQTT_PORT 0
