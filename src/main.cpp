@@ -1,19 +1,19 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-#include "fl_esp_mqtt.h"
+#include "lib/mqtt.h"
 #include "private.h"
 
 void echo_qos0(const char * topic, const char * data, size_t size) {
-    fl_mqtt_publish("echo/0", data, size, 0, 0);
+    mqtt_publish("echo/0", data, size, 0, 0);
 }
 
 void echo_qos1(const char * topic, const char * data, size_t size) {
-    fl_mqtt_publish("echo/1", data, size, 1, 0);
+    mqtt_publish("echo/1", data, size, 1, 0);
 }
 
 void echo_qos2(const char * topic, const char * data, size_t size) {
-    fl_mqtt_publish("echo/2", data, size, 2, 0);
+    mqtt_publish("echo/2", data, size, 2, 0);
 }
 
 fl_topic_t topics_set[] = { //{"name", callback_t, qos}
@@ -39,16 +39,16 @@ void setup() {
     printf("Local ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
 
 
-    fl_mqtt_init();
-    fl_mqtt_connect(HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD);
+    mqtt_init();
+    mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD);
     puts("\nConnecting MQTT");
-    while (fl_mqtt_is_connected() != 1){
+    while (mqtt_is_connected() != 1){
         printf("."); fflush(stdout);
         delay(100);
     }
     puts("\nConnected to the MQTT broker");
 
-    fl_mqtt_subscribe_topics(topics_set, sizeof(topics_set)/sizeof(topics_set[0]));
+    mqtt_subscribe_topics(topics_set, sizeof(topics_set)/sizeof(topics_set[0]));
     puts("Subscribed");
 
     puts("end of \"void setup();\"");

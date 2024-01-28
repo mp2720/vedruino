@@ -29,31 +29,31 @@ typedef struct {
 } fl_topic_t;
 
 //Инициализирует инструменты. Запускать единожды
-void fl_mqtt_init();
+void mqtt_init();
 
 //Подключиться к брокеру на mqtt://broker_host:broker_port, с аутентификацией
-void fl_mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
+int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
 
 //Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные топики
-void fl_mqtt_subscribe_topics(fl_topic_t topics[], int len); 
+void mqtt_subscribe_topics(fl_topic_t topics[], int len); 
 
 //Отписаться от топика
-void fl_mqtt_unsubscribe_topic(const char * name);
+void mqtt_unsubscribe_topic(const char * name);
 
 //Отправить сообщение, если data_size равно 0, то считает длинну строки
-void fl_mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, int retain); 
+void mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, int retain); 
 
 //Отключиться от брокера
-void fl_mqtt_disconnect(); 
+int mqtt_disconnect(); 
 
 //Приостановить работу mqtt
-void fl_mqtt_stop(); 
+void mqtt_stop(); 
 
 //Возобновить работу mqtt
-void fl_mqtt_resume(); 
+void mqtt_resume(); 
 
 //Возвращает 1 если брокер подключён, иначе 0
-bool fl_mqtt_is_connected(); 
+bool mqtt_is_connected(); 
 
 #endif
 
