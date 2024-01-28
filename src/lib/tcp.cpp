@@ -15,7 +15,7 @@
 #include "tcp.h"
 #include "log.h"
 
-static const char *TAG = "TCP";
+static const char * TAG = "TCP";
 
 int log_socket = -1;
 

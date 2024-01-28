@@ -35,22 +35,22 @@ void mqtt_init();
 int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
 
 //Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные топики
-void mqtt_subscribe_topics(fl_topic_t topics[], int len); 
+int mqtt_subscribe_topics(fl_topic_t topics[], int len); 
 
 //Отписаться от топика
-void mqtt_unsubscribe_topic(const char * name);
+int mqtt_unsubscribe_topic(const char * name);
 
 //Отправить сообщение, если data_size равно 0, то считает длинну строки
-void mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, int retain); 
+int mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 
 //Отключиться от брокера
 int mqtt_disconnect(); 
 
 //Приостановить работу mqtt
-void mqtt_stop(); 
+int mqtt_stop(); 
 
 //Возобновить работу mqtt
-void mqtt_resume(); 
+int mqtt_resume(); 
 
 //Возвращает 1 если брокер подключён, иначе 0
 bool mqtt_is_connected(); 

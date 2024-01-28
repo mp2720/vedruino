@@ -24,17 +24,14 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#include "esp_log.h"
 
-#ifdef ARDUINO_ARCH_ESP32 //для работы логов в arduino
-#include "esp32-hal-log.h"
-#endif
+#include "log.h"
 
-static const char *TAG = "MQTT";
+static const char * TAG = "MQTT";
 
 static bool mqtt_connect_flag = 0;
 
-esp_mqtt_client_handle_t mqtt_client;
+esp_mqtt_client_handle_t mqtt_client = NULL;
 
 static struct {
     fl_topic_t * pairs;
@@ -47,11 +44,13 @@ static int topic_pair_cmp(const void * a, const void * b) {
     return strcmp(((const fl_topic_t*)a)->name, ((const fl_topic_t*)b)->name);
 }
 
-void mqtt_subscribe_topics(fl_topic_t topics[], int len) {
+int mqtt_subscribe_topics(fl_topic_t topics[], int len) {
+    int res = 0;
     if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         for(int i=0;i<subs_topics.size;i++) {
             if(esp_mqtt_client_unsubscribe(mqtt_client, subs_topics.pairs[i].name) == -1) {
                 ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
+                res = 1;
             }
         }
         subs_topics.pairs = topics;
@@ -60,12 +59,15 @@ void mqtt_subscribe_topics(fl_topic_t topics[], int len) {
         for(int i=0;i<subs_topics.size;i++) {
             if(esp_mqtt_client_subscribe(mqtt_client, (char*)subs_topics.pairs[i].name, subs_topics.pairs[i].qos) == -1) {
                 ESP_LOGE(TAG, "esp_mqtt_client_subscribe() error");
+                res = 1;
             }
         }
         xSemaphoreGive(topics_mutex);
     } else {
         ESP_LOGE(TAG, "failed to take topics_mutex");
+        res = 1;
     }
+    return res;
 }
 
 static fl_topic_t * find_callback(const char * name) {
@@ -80,30 +82,23 @@ static fl_topic_t * find_callback(const char * name) {
     return NULL;
 }
 
-void mqtt_unsubscribe_topic(const char * name) {
-    if(xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000) ) == pdTRUE) {
-        fl_topic_t search_tmp_topic = {.name = name};
-        fl_topic_t * target_pair = (fl_topic_t*)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), topic_pair_cmp);
-        if(target_pair) {
-            if(esp_mqtt_client_unsubscribe(mqtt_client, name) == -1) {
-                ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
-            }
-        } else {
-            ESP_LOGW(TAG, "Unable to find \"%s\" topic for delete", name);
-        }
-        xSemaphoreGive(topics_mutex);
-    } else {
-        ESP_LOGE(TAG, "failed to take topics_mutex");
+int mqtt_unsubscribe_topic(const char * name) {
+    if(esp_mqtt_client_unsubscribe(mqtt_client, name) == -1) {
+        ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
+        return 1;
     }
+    return 0;
 }
 
-void mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, int retain) {
+int mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain) {
     if (!data_size) data_size = strlen(data);
 
-    int res = esp_mqtt_client_publish(mqtt_client, topic, data, data_size, qos, retain);
+    int res = esp_mqtt_client_publish(mqtt_client, topic, data, data_size, qos, (int)retain);
     if (res < 0) {
         ESP_LOGE(TAG, "esp_mqtt_client_publish() error");
+        return 1;
     }   
+    return 0;
 }
 
 struct mqtt_callback_item {
@@ -146,11 +141,13 @@ static void mqtt_event_handler(void * handler_args, esp_event_base_t base, int32
 
         case MQTT_EVENT_CONNECTED: {
             ESP_LOGD(TAG, "MQTT_EVENT_CONNECTED");
+            vTaskResume(cb_task.task.handle);
             mqtt_connect_flag = 1;
         } break;
 
         case MQTT_EVENT_DISCONNECTED: {
             ESP_LOGD(TAG, "MQTT_EVENT_DISCONNECTED");
+            vTaskSuspend(cb_task.task.handle);
             mqtt_connect_flag = 0;
         } break;
 
@@ -253,7 +250,7 @@ void mqtt_init() {
         cb_task.task.stack, 
         &cb_task.task.buffer
     );
-
+    vTaskSuspend(cb_task.task.handle);
     topics_mutex = xSemaphoreCreateMutex();
     
     ESP_LOGI(TAG, "initialized");
@@ -289,16 +286,21 @@ int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * us
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!mqtt_client) {
         ESP_LOGE(TAG, "esp_mqtt_client_init() error");
-        return -1;
+        return 1;
     }
     
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
     int res1 = esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     if (res1 != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_start() error: %d", (int)res1);
+        ESP_LOGE(TAG, "esp_mqtt_client_register_event() error: %d", (int)res1);
         return 1;
     }
     #endif
+
+    if (!cb_task.task.handle || !cb_task.queue.handle) {
+        ESP_LOGE(TAG, "Task or queue not initialized, run mqtt_init()");
+        return 1;
+    }
 
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
     if (res != ESP_OK) {
@@ -306,6 +308,7 @@ int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * us
         return 1;
     }
 
+    
     return 0;
 }
 
@@ -314,19 +317,36 @@ int mqtt_disconnect() {
         ESP_LOGE(TAG, "esp_mqtt_client_disconnect error: %d", res);
         return 1;
     }
+    if (cb_task.task.handle) vTaskSuspend(cb_task.task.handle);
     return 0;
 }
 
-void mqtt_stop() {
+int mqtt_stop() {
+    if (!mqtt_client) {
+        ESP_LOGW(TAG, "Nothing to stop");
+        return 1;
+    }
     esp_err_t res = esp_mqtt_client_stop(mqtt_client);
-    if (res != ESP_OK) ESP_LOGE(TAG, "esp_mqtt_client_stop fail: %d", res);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "esp_mqtt_client_stop fail: %d", res);
+        return 1;
+    }
     if (cb_task.task.handle) vTaskSuspend(cb_task.task.handle);
+    return 0;
 }
 
-void mqtt_resume() {
+int mqtt_resume() {
+    if (!mqtt_client) {
+        ESP_LOGW(TAG, "Nothing to resume");
+        return 1;
+    }
     if (cb_task.task.handle) vTaskResume(cb_task.task.handle);
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
-    if (res != ESP_OK) ESP_LOGE(TAG, "esp_mqtt_client_start fail: %d", res);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "esp_mqtt_client_start fail: %d", res);
+        return 1;
+    }
+    return 0;
 }
 
 bool mqtt_is_connected() {
