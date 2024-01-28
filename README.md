@@ -127,3 +127,112 @@ arduino-cli config init
 
 Дальше всё понятно.
 
+
+
+# lib/log.h
+
+Набор макросов для работы логов вида `ESP_LOGX(TAG, format, ...)`, работает как `printf` но оформляет цвет, заголовок сообщения и переносит строку.
+
+```
+E [<TAG>] <message>
+W [<TAG>] <message>
+I [<TAG>] <message>
+D [<TAG>] <message>
+V [<TAG>] <message>
+```
+Где вместо `<TAG>` передаётся название модуля, а `<message>` сообщение.
+
+TAG определяется в начале файла следующим образом:
+```C
+static const char * TAG = "MY_MODULE";
+```
+
+Ошибка:
+```C
+ESP_LOGE(const char * TAG, const char * format, ...)
+```
+
+Предупреждение:
+```C
+ESP_LOGW(const char * TAG, const char * format, ...)
+```
+
+Информатиция:
+```C
+ESP_LOGI(const char * TAG, const char * format, ...)
+```
+
+Отладка:
+```C
+ESP_LOGD(const char * TAG, const char * format, ...)
+```
+
+Дополнительные :
+```C
+ESP_LOGV(const char * TAG, const char * format, ...)
+```
+
+### LIBLOG_LEVEL 
+Макрос уровня логгирования, можно установить самостоятельно до 
+`#include "lib/log.h"`, по умолчанию равен 5
+
+* __0__ - нет логов
+* __1__ - error
+* __2__ - warning
+* __3__ - info
+* __4__ - debug
+* __5__ - verbose
+
+Чем больше уровень, тем менее значимые сообщения будут приходить
+```C
+#ifndef LIBLOG_LEVEL
+    #define LIBLOG_LEVEL 5
+#endif
+```
+
+### log_output
+Указатель на функцию с printf-подобным интерфейсом, по умолчанию ему и равен.
+При изменении на `tcp_log_printf` логи будут передаваться новой функции
+```C
+typedef int (*printf_like_t) (const char *, ...);
+
+extern printf_like_t log_output; 
+```
+
+# lib/tcp.h
+Набор функций для работы с сокетами
+
+## connect
+Функция получает имя сервера и порт, пытается подключиться, и при успехе возвращает дескриптор сокета, который используется в дальнейшем, иначе возвращает -1.
+
+Именем хоста может быть IP адрес или домен
+
+Портом может быть число или название сервиса (см. /etc/services)
+```C
+int tcp_connect(const char * host_name, const char * host_port);
+```
+## close
+Получает сокет, и отключает его от сервера. Обязательно использовать перед перезаписью дескриптора сокета
+```C
+int tcp_close(int socket);
+```
+
+## send
+Отправляет сообщение `payload` на данный сокет. В `len` нужно указать длинну сообщения в байтах, если это строка, то можно оставить `len` равным 0, тогда длина будет вычислена с помощью `strlen()`
+```C
+int tcp_send(int socket, const char * payload, size_t len);
+```
+
+## printf
+Форматирует сообщение и отправляет на данный сокет.
+```C
+int tcp_printf(int socket, const char * format, ...);
+```
+Для отправки логов есть функция которая отправляет на сокет, указанный глобальной переменной log_socket. Для работы нужно подключить `log_socket` с помощью `tcp_connect()`, после чего приравнять `log_output` из `log.h` к `tcp_log_printf`.
+
+```C
+extern int log_socket;
+
+int tcp_log_printf(const char * format, ...);
+
+```
