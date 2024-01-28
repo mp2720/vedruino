@@ -7,4 +7,3 @@ src/conf.h
 .clangd
 */__pycache__/
 config.ini
-
