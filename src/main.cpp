@@ -1,4 +1,5 @@
 #include "conf.h"
+#include "lib/gdb/gdb.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/ota.h"
@@ -30,6 +31,8 @@ void setup() {
 #if CONF_TCP_OTA_ENABLED
     tcp_ota_start_server(CONF_TCP_OTA_PORT);
 #endif
+
+    gdb();
 
     MAIN_LOGI("setup() finished");
 }
