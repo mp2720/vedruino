@@ -1,21 +1,21 @@
 #include "gdb.h"
 
-#include <string.h>
+#include "hal.h"
+#include <freertos/FreeRTOS.h>
+#include <stdio.h>
 
-static void inf_lp();
-asm(".type inf_lp, @function\n"
-    ".align 4\n"
-    "inf_lp:\n"
-    "   entry sp, 32\n"
-    "label1488:\n"
-    "   j label1488\n"
-    "   retw.n\n"
-    ".size inf_lp, .-inf_lp\n");
-
-static void test_breakpoint() {
-    asm("break.n 0\n");
+void test_bpnt() {
+    asm("break.n 1\n");
 }
 
-void gdb() {
-    test_breakpoint();
+void gdb_task_cpu0(void *p) {
+    gdb_disable_wdts();
+    printf("task0 on CPU %d\n", xPortGetCoreID());
+    test_bpnt();
+}
+
+void gdb_task_cpu1(void *p) {
+    printf("task1 on CPU %d\n", xPortGetCoreID());
+    while (1) {
+    }
 }

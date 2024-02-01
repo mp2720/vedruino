@@ -1,4 +1,4 @@
-SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h')
+SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h' -o -name '*.S')
 
 SKETCH=$(shell tools/config.py -g arduino:sketch_name)
 PORT=$(shell tools/config.py -g board:port)
@@ -50,6 +50,7 @@ ota: build
 
 disasm:
 	${TOOLCHAIN_PATH}/xtensa-esp32-elf-objdump -d build/${SKETCH}.ino.elf > /tmp/${SKETCH}.s
+	# ${TOOLCHAIN_PATH}/xtensa-esp32-elf-objdump -d /home/user/.arduino15/packages/esp32/hardware/esp32/2.0.11/tools/sdk/esp32/lib/libfreertos.a > /tmp/${SKETCH}.s
 
 
 all: build flash monitor

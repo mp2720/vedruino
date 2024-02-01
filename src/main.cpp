@@ -32,7 +32,9 @@ void setup() {
     tcp_ota_start_server(CONF_TCP_OTA_PORT);
 #endif
 
-    gdb();
+    puts("gdb()");
+    xTaskCreatePinnedToCore(&gdb_task_cpu1, "GDB 1", 4096, NULL, tskIDLE_PRIORITY, NULL, 1);
+    xTaskCreatePinnedToCore(&gdb_task_cpu0, "GDB 0", 4096, NULL, tskIDLE_PRIORITY, NULL, 0);
 
     MAIN_LOGI("setup() finished");
 }
