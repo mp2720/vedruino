@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #define LOG_TASK_STACK_SIZE 2048
-#define IDLE_TASK_STACK_SIZE 2048
+#define LOG_TASK_PRIORITY 24
 
 #define SM_LOGE(...) VDR_LOGE("sysmon", __VA_ARGS__)
 #define SM_LOGI(...) VDR_LOGI("sysmon", __VA_ARGS__)
