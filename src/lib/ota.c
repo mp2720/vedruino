@@ -7,8 +7,7 @@
  * TODO: разобраться как выключать остальные задачи во время прошивки, чтобы время зря не тратили.
  */
 
-#include "ota.h"
-#include "log.h"
+#include "lib.h"
 
 #include <errno.h>
 #include <esp_ota_ops.h>
@@ -58,7 +57,7 @@ static inline int update();
 static char nibble_str(uint8_t n);
 static inline void md5str(const uint8_t md5[MD5_SIZE], char out_str[MD5STR_SIZE]);
 
-int tcp_ota_start_server(int _port) {
+int ota_server_start(int _port) {
     port = _port;
 
     ssfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -91,7 +90,7 @@ int tcp_ota_start_server(int _port) {
     return 0;
 }
 
-static void server_task(void *p) {
+static void server_task(UNUSED void *p) {
     struct sockaddr_in ca;
     socklen_t caddr_len = sizeof ca;
     char ca_str[INET_ADDRSTRLEN];

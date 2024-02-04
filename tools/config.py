@@ -74,6 +74,13 @@ if __name__ == "__main__":
 
 #define CONF_TCP_OTA_ENABLED {int(conf['tcp_ota']['enabled'] == 'true')}
 #define CONF_TCP_OTA_PORT {int(conf['tcp_ota']['port'])}
+
+#define CONF_SYSMON_ENABLED {int(conf['sysmon']['enabled'] == 'true')}
+#define CONF_SYSMON_LOG_INTERVAL_MS {int(conf['sysmon']['log_interval_ms'])}
+#define CONF_SYSMON_MONITOR_CPU {int(conf['sysmon']['monitor_cpu'] == 'true')}
+#define CONF_SYSMON_MONITOR_HEAP {int(conf['sysmon']['monitor_heap'] == 'true')}
+#define CONF_SYSMON_MONITOR_TASKS {int(conf['sysmon']['monitor_tasks'] == 'true')}
+#define CONF_SYSMON_DUALCORE {int(conf['sysmon']['dualcore'] == 'true')}
 """
         with open("src/conf.h", "w+") as f:
             f.write(conf_h)

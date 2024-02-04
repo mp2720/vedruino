@@ -11,6 +11,8 @@ BIN_PATH=build/${SKETCH}.ino.bin
 
 ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maximum_size=1966080
 
+TOOLCHAIN_PATH=$(shell tools/config.py -g arduino:toolchain_path)
+
 src/conf.h: config.ini
 	tools/config.py -c
  
@@ -45,6 +47,9 @@ monitor:
 
 ota: build
 	tools/ota.py -i ${BOARD_IP} -p ${OTA_PORT} ${BIN_PATH}
+
+disasm:
+	${TOOLCHAIN_PATH}/xtensa-esp32-elf-objdump -d build/${SKETCH}.ino.elf > /tmp/${SKETCH}.s
 
 all: build flash monitor
 

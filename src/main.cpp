@@ -1,7 +1,5 @@
 #include "conf.h"
-#include "lib/log.h"
-#include "lib/misc.h"
-#include "lib/ota.h"
+#include "lib/lib.h"
 #include <Arduino.h>
 #include <WiFi.h>
 
@@ -18,6 +16,10 @@ void setup() {
     MAIN_LOGI("running %s", running_part);
     MAIN_LOGI("built on " __DATE__ " at " __TIME__);
 
+#if CONF_SYSMON_ENABLED
+    sysmon_start();
+#endif // CONF_SYSMON_ENABLED
+
     WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
     MAIN_LOGI("connecting to %s...", CONF_WIFI_SSID);
     MAIN_LOGI("board MAC: %s", WiFi.macAddress().c_str());
@@ -28,8 +30,8 @@ void setup() {
     MAIN_LOGI("board IP: %s", WiFi.localIP().toString().c_str());
 
 #if CONF_TCP_OTA_ENABLED
-    tcp_ota_start_server(CONF_TCP_OTA_PORT);
-#endif
+    ota_server_start(CONF_TCP_OTA_PORT);
+#endif // CONF_TCP_OTA_ENABLED
 
     MAIN_LOGI("setup() finished");
 }
