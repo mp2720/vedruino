@@ -28,3 +28,11 @@ color=true
 enabled=true
 port=5256
 
+[sysmon]
+enabled=false
+log_interval_ms=3333
+monitor_cpu=true
+monitor_heap=true
+monitor_tasks=true
+dualcore=true
+
