@@ -18,15 +18,6 @@ static const char *TAG = "TCP";
 
 int log_socket = -1;
 
-// отправить сообщение payload - данные, len - длинна, если len==0, то вычисляется длинна строки
-static int tcplog_send(int socket, const char *payload, size_t len);
-
-// закрыть сокет
-static int tcplog_close(int socket);
-
-// printf на удалённый сервер
-static int tcplog_sock_printf(int socket, const char *format, ...);
-
 int tcplog_connect(const char *host_name, const char *host_port) {
     int result_socket = -1;
 

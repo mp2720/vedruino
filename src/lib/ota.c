@@ -18,11 +18,11 @@
 #include <math.h>
 #include <mbedtls/md5.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <string.h>
 
-static const char * TAG = "OTA";
+static const char *TAG = "OTA";
 
 #define SERVER_TASK_STACK_SIZE 4096
 #define FIRMWARE_BUF_SIZE 512
@@ -214,7 +214,8 @@ static inline int update() {
     else
         avg_speed = (float)header.size / secs;
 
-    ESP_LOGI(TAG, "loaded %zu bytes in %f secs with avg speed %f b/s", header.size, secs, avg_speed);
+    ESP_LOGI(TAG, "loaded %zu bytes in %f secs with avg speed %f b/s", header.size, secs,
+             avg_speed);
 
     err = esp_ota_end(ota_handle);
     if (err != ESP_OK) {
