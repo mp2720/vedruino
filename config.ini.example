@@ -14,8 +14,15 @@ password=
 
 [mqtt]
 host=
+port=
 user=
 password=
+
+[tcp_log]
+host=
+port=
+level=5
+color=true
 
 [tcp_ota]
 enabled=true

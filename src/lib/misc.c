@@ -1,11 +1,9 @@
-/*
- * TODO: сделать вывод информации о состоянии памяти через функции esp-idf.
- */
-
 #include "lib.h"
 
 #include <esp_ota_ops.h>
 #include <stdlib.h>
+
+static const char * TAG = "MEM";
 
 void misc_running_partition(char out_label[MISC_PART_LABEL_SIZE]) {
     const esp_partition_t *part = esp_ota_get_running_partition();
