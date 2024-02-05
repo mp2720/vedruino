@@ -1,6 +1,7 @@
 #include "mqtt.h"
 
 #include "log.h"
+#include "macro.h"
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -122,7 +123,7 @@ static struct {
     } queue;
 } cb_task;
 
-static void mqtt_callback_task(void *pvParameters) {
+static void mqtt_callback_task(UNUSED void *pvParameters) {
     struct mqtt_callback_item args;
     while (1) {
         if (xQueueReceive(cb_task.queue.handle, &args, portMAX_DELAY)) {
@@ -134,8 +135,8 @@ static void mqtt_callback_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id,
-                               void *event_data) {
+static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_t base,
+                               UNUSED int32_t event_id, void *event_data) {
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     switch (event->event_id) {
 
