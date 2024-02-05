@@ -12,13 +12,22 @@
 #include <unistd.h>
 
 #include "log.h"
-#include "tcp.h"
+#include "tcplog.h"
 
 static const char *TAG = "TCP";
 
 int log_socket = -1;
 
-int tcp_connect(const char *host_name, const char *host_port) {
+// отправить сообщение payload - данные, len - длинна, если len==0, то вычисляется длинна строки
+static int tcplog_send(int socket, const char *payload, size_t len);
+
+// закрыть сокет
+static int tcplog_close(int socket);
+
+// printf на удалённый сервер
+static int tcplog_sock_printf(int socket, const char *format, ...);
+
+int tcplog_connect(const char *host_name, const char *host_port) {
     int result_socket = -1;
 
     struct addrinfo *servinfo;
@@ -56,7 +65,7 @@ int tcp_connect(const char *host_name, const char *host_port) {
     return result_socket;
 }
 
-int tcp_send(int socket, const char *payload, size_t len) {
+int tcplog_send(int socket, const char *payload, size_t len) {
     if (!len)
         len = strlen(payload);
     int err = send(socket, payload, len, 0);
@@ -72,7 +81,7 @@ static int tcp_vprintf(int socket, const char *format, va_list vargs) {
     char buff[BUFF_SIZE];
     int bytes = vsnprintf(buff, BUFF_SIZE - 1, format, vargs);
     if (bytes < BUFF_SIZE) {
-        tcp_send(socket, buff, bytes);
+        tcplog_send(socket, buff, bytes);
     } else {
         char *larger_buff = (char *)malloc(bytes + 1);
         if (!larger_buff) {
@@ -80,13 +89,13 @@ static int tcp_vprintf(int socket, const char *format, va_list vargs) {
             return -1;
         }
         vsprintf(larger_buff, format, vargs);
-        tcp_send(socket, larger_buff, bytes);
+        tcplog_send(socket, larger_buff, bytes);
         free(larger_buff);
     }
     return bytes;
 }
 
-int tcp_printf(int socket, const char *format, ...) {
+int tcplog_sock_printf(int socket, const char *format, ...) {
     va_list args;
     va_start(args, format);
     int res = tcp_vprintf(socket, format, args);
@@ -94,7 +103,7 @@ int tcp_printf(int socket, const char *format, ...) {
     return res;
 }
 
-int tcp_log_printf(const char *format, ...) {
+int tcplog_printf(const char *format, ...) {
     printf_like_t last = log_output;
     log_output = printf;
     va_list args;
@@ -105,7 +114,7 @@ int tcp_log_printf(const char *format, ...) {
     return res;
 }
 
-int tcp_close(int socket) {
+int tcplog_close(int socket) {
     if (socket < 0) {
         ESP_LOGW(TAG, "Nothing to close");
         return 0;

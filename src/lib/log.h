@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../conf.h"
+#include "macro.h"
 
 #if CONF_LOG_COLOR_ENABLED == 0
     #define CLR_E ""
@@ -64,4 +65,4 @@
 typedef int (*printf_like_t) (const char *, ...);
 
 //указатель на функцию вывода логов. Изначально printf(), изменить на tcp_log_printf() для отправки по сети
-extern printf_like_t log_output; 
+EXTERNC printf_like_t log_output; 

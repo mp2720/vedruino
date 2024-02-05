@@ -1,5 +1,6 @@
 #pragma once
 
+#include "macro.h"
 #include <esp_idf_version.h>
 #include <mqtt_client.h>
 #include <stdbool.h>
@@ -13,6 +14,8 @@
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(3, 0, 0)
 #error ESP_IDF_VERSION < 3.0.0 убери это говно
 #endif
+
+EXTERNC_BEGIN
 
 // handle для использования других инструментов
 extern esp_mqtt_client_handle_t mqtt_client;
@@ -56,3 +59,5 @@ int mqtt_resume();
 
 // Возвращает 1 если брокер подключён, иначе 0
 bool mqtt_is_connected();
+
+EXTERNC_END

@@ -1,12 +1,16 @@
+#pragma once
+
 #include "../conf.h"
-#include "log.h"
+#include "macro.h"
 #include <stddef.h>
 
-#define UNUSED __attribute__((unused))
+#include "log.h"
+#include "mqtt.h"
+#include "tcplog.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <esp_err.h>
+
+EXTERNC_BEGIN
 
 // === ota ===
 
@@ -35,6 +39,4 @@ void misc_hum_size(size_t size, float *out_f, char out_suf[MISC_BISUFFIX_SIZE]);
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-#ifdef __cplusplus
-}
-#endif
+EXTERNC_END

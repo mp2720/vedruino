@@ -1,5 +1,6 @@
 #include "mqtt.h"
 
+#include "log.h"
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -20,8 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "log.h"
 
 static const char *TAG = "MQTT";
 

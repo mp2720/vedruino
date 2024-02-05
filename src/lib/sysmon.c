@@ -9,9 +9,7 @@
 #define LOG_TASK_STACK_SIZE 2048
 #define LOG_TASK_PRIORITY 24
 
-#define SM_LOGE(...) VDR_LOGE("sysmon", __VA_ARGS__)
-#define SM_LOGI(...) VDR_LOGI("sysmon", __VA_ARGS__)
-#define SM_LOGD(...) VDR_LOGD("sysmon", __VA_ARGS__)
+const char *TAG = "sysmon";
 
 static void log_task(void *);
 static bool idle_hook();
@@ -99,14 +97,14 @@ void sysmon_dump_heap_stat() {
     misc_hum_size(used_heap, &used_f, used_s);
 
     float mem_usage = 100.f * used_f / total_f;
-    SM_LOGI("heap %.2f%sB/%.2f%sB (%.1f%%)", used_f, used_s, total_f, total_s, mem_usage);
+    ESP_LOGI(TAG, "heap %.2f%sB/%.2f%sB (%.1f%%)", used_f, used_s, total_f, total_s, mem_usage);
 }
 
 void sysmon_dump_tasks() {
     unsigned tasks_num = uxTaskGetNumberOfTasks();
     TaskSnapshot_t *snapshots = malloc(tasks_num * sizeof(*snapshots));
     if (snapshots == NULL) {
-        SM_LOGE("malloc() failed");
+        ESP_LOGE(TAG, "malloc() failed");
         return;
     }
     UNUSED unsigned tcb_size;
@@ -143,7 +141,7 @@ void sysmon_dump_tasks() {
         }
         unsigned cur_pr = uxTaskPriorityGet(thnd);
 
-        SM_LOGI("TASK %s %p %s %u %p %p", name, thnd, state, cur_pr, stack_end, stack_top);
+        ESP_LOGI(TAG, "TASK %s %p %s %u %p %p", name, thnd, state, cur_pr, stack_end, stack_top);
     }
 
     free(snapshots);
@@ -203,7 +201,7 @@ static inline void log_and_reset_cpu_load(int core_id) {
         TickType_t ticks = CONF_SYSMON_LOG_INTERVAL_MS / portTICK_PERIOD_MS;
         float load = 1.f - MIN(idle_ticks[core_id] / (float)ticks, 1.f);
         load *= 100.f;
-        SM_LOGI("cpu%d %.1f%%", core_id, load);
+        ESP_LOGI(TAG, "cpu%d %.1f%%", core_id, load);
         idle_ticks[core_id] = 0;
         xSemaphoreGive(idle_mutex[core_id]);
     }
