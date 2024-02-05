@@ -1,6 +1,6 @@
-#include "esp_heap_caps.h"
 #include "lib.h"
 #include <esp_freertos_hooks.h>
+#include <esp_heap_caps.h>
 #include <esp_ipc_isr.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -54,19 +54,19 @@ int sysmon_start() {
         || (idle_mutex[1] = xSemaphoreCreateMutex()) == NULL
 #endif // CONF_SYSMON_DUALCORE
     ) {
-        SM_LOGE("xSemaphoreCreateMutex() failed");
+        ESP_LOGE(TAG, "xSemaphoreCreateMutex() failed");
         return -1;
     }
 
     esp_err_t err;
     if ((err = esp_register_freertos_idle_hook_for_cpu(&idle_hook, 0)) != ESP_OK) {
-        SM_LOGE("esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
         return -1;
     }
 
 #if CONF_SYSMON_DUALCORE
     if ((err = esp_register_freertos_idle_hook_for_cpu(&idle_hook, 1)) != ESP_OK) {
-        SM_LOGE("esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
         return -1;
     }
 #endif // CONF_SYSMON_DUALCORE
@@ -74,7 +74,7 @@ int sysmon_start() {
 
     if (xTaskCreate(&log_task, "sysmon_log", LOG_TASK_STACK_SIZE, NULL, LOG_TASK_PRIORITY,
                     &log_task_hnd) != pdPASS) {
-        SM_LOGE("xTaskCreate() failed");
+        ESP_LOGE(TAG, "xTaskCreate() failed");
         return -1;
     }
 
@@ -82,7 +82,7 @@ int sysmon_start() {
     /* xTaskCreate(&loop_task, "loop0", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
     /* xTaskCreate(&loop_task, "loop1", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
 
-    SM_LOGD("started");
+    ESP_LOGD(TAG, "started");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 
     return 0;
@@ -150,14 +150,14 @@ void sysmon_dump_tasks() {
 void sysmon_pause() {
 #if CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
     vTaskSuspend(log_task_hnd);
-    SM_LOGD("paused");
+    ESP_LOGD(TAG, "paused");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 }
 
 void sysmon_resume() {
 #if CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
     vTaskResume(log_task_hnd);
-    SM_LOGD("resumed");
+    ESP_LOGD(TAG, "resumed");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 }
 
