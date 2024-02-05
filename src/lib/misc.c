@@ -8,7 +8,7 @@
 #include <esp_ota_ops.h>
 #include <stdlib.h>
 
-#define MEM_LOGE(...) VDR_LOGE("mem", __VA_ARGS__)
+static const char * TAG = "MEM";
 
 static void inf_loop() {
     while (1)
@@ -18,7 +18,7 @@ static void inf_loop() {
 void *misc_malloc(size_t size) {
     void *ptr = malloc(size);
     if (!ptr) {
-        MEM_LOGE("malloc(size=%zu) failed", size);
+        ESP_LOGE(TAG,"malloc(size=%zu) failed", size);
         inf_loop();
     }
     return ptr;
@@ -27,7 +27,7 @@ void *misc_malloc(size_t size) {
 void *misc_calloc(size_t n, size_t esize) {
     void *ptr = calloc(n, esize);
     if (!ptr) {
-        MEM_LOGE("calloc(%zu, %zu) failed", n, esize);
+        ESP_LOGE(TAG, "calloc(%zu, %zu) failed", n, esize);
         inf_loop();
     }
     return ptr;

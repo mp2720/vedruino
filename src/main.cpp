@@ -1,39 +1,56 @@
-#include "conf.h"
-#include "lib/log.h"
-#include "lib/misc.h"
-#include "lib/ota.h"
 #include <Arduino.h>
 #include <WiFi.h>
+#include <time.h>
 
-#define MAIN_LOGI(...) VDR_LOGI("main", __VA_ARGS__)
+#include "conf.h"
+#include "lib/log.h"
+#include "lib/tcp.h"
+#include "lib/mqtt.h"
+#include "lib/ota.h"
+
+static const char * TAG = "MAIN";
+
+void start_wifi() {
+    WiFi.mode(WIFI_STA); //Optional
+    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
+    puts("\nConnecting WIFI");
+    while(WiFi.status() != WL_CONNECTED){
+        printf("."); fflush(stdout);
+        delay(100);
+    }
+    puts("\nConnected to the WiFi network");
+    printf("Local ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
+}
+
+void start_log() {
+    log_socket = tcp_connect(CONF_LOG_HOST, CONF_LOG_PORT);
+    log_output = tcp_log_printf;
+}
+
+void start_mqtt() {
+    mqtt_init();
+    mqtt_connect(CONF_MQTT_HOST, CONF_MQTT_PORT, CONF_MQTT_USER, CONF_MQTT_PASSWD);
+    while (!mqtt_is_connected()) {
+        printf("."); fflush(stdout);
+        delay(100);
+    }
+    puts("");
+    //mqtt_subscribe_topics(topics, sizeof(topics)/sizeof(topics[0]));
+}
 
 void setup() {
     Serial.begin(CONF_BAUD);
-
-    MAIN_LOGI("executing startup delay");
     delay(CONF_STARTUP_DELAY);
+    
+    start_wifi();
+    start_log();
+    start_mqtt();
 
-    char running_part[MISC_PART_LABEL_SIZE];
-    misc_running_partition(running_part);
-    MAIN_LOGI("running %s", running_part);
-    MAIN_LOGI("built on " __DATE__ " at " __TIME__);
-
-    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
-    MAIN_LOGI("connecting to %s...", CONF_WIFI_SSID);
-    MAIN_LOGI("board MAC: %s", WiFi.macAddress().c_str());
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-    }
-    MAIN_LOGI("WiFi connection established");
-    MAIN_LOGI("board IP: %s", WiFi.localIP().toString().c_str());
-
-#if CONF_TCP_OTA_ENABLED
-    tcp_ota_start_server(CONF_TCP_OTA_PORT);
-#endif
-
-    MAIN_LOGI("setup() finished");
+    #if CONF_TCP_OTA_ENABLED
+        tcp_ota_start_server(CONF_TCP_OTA_PORT);
+    #endif
 }
 
 void loop() {
-    delay(10000);
+    delay(1000);
 }

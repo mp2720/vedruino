@@ -69,8 +69,14 @@ if __name__ == "__main__":
 #define CONF_WIFI_PASSWD "{escape_str(conf['wifi']['password'])}"
 
 #define CONF_MQTT_HOST "{escape_str(conf['mqtt']['host'])}"
+#define CONF_MQTT_PORT {escape_str(conf['mqtt']['port'])}
 #define CONF_MQTT_USER "{escape_str(conf['mqtt']['user'])}"
 #define CONF_MQTT_PASSWD "{escape_str(conf['mqtt']['password'])}"
+
+#define CONF_LOG_HOST "{escape_str(conf['tcp_log']['host'])}"
+#define CONF_LOG_PORT "{escape_str(conf['tcp_log']['port'])}"
+#define CONF_LOG_LEVEL {escape_str(conf['tcp_log']['level'])}
+#define CONF_LOG_COLOR_ENABLED {int(conf['tcp_log']['color'] == 'true')}
 
 #define CONF_TCP_OTA_ENABLED {int(conf['tcp_ota']['enabled'] == 'true')}
 #define CONF_TCP_OTA_PORT {int(conf['tcp_ota']['port'])}
