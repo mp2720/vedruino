@@ -1,6 +1,6 @@
 # lib/log.h
 
-Набор макросов для работы логов вида `ESP_LOGX(TAG, format, ...)`, работает как `printf` но оформляет цвет, заголовок сообщения и переносит строку.
+Набор макросов для работы логов вида `DFLT_LOGX(TAG, format, ...)` и `SAFE_LOGX(TAG, format, ...)`, работает как `printf` но оформляет цвет, заголовок сообщения и переносит строку.
 
 ```
 E [<TAG>] <message>
@@ -18,28 +18,30 @@ static const char * TAG = "MY_MODULE";
 
 Ошибка:
 ```C
-ESP_LOGE(const char * TAG, const char * format, ...)
+DFLT_LOGE(const char * TAG, const char * format, ...)
 ```
 
 Предупреждение:
 ```C
-ESP_LOGW(const char * TAG, const char * format, ...)
+DFLT_LOGW(const char * TAG, const char * format, ...)
 ```
 
 Информатиция:
 ```C
-ESP_LOGI(const char * TAG, const char * format, ...)
+DFLT_LOGI(const char * TAG, const char * format, ...)
 ```
 
 Отладка:
 ```C
-ESP_LOGD(const char * TAG, const char * format, ...)
+DFLT_LOGD(const char * TAG, const char * format, ...)
 ```
 
 Дополнительные :
 ```C
-ESP_LOGV(const char * TAG, const char * format, ...)
+DFLT_LOGV(const char * TAG, const char * format, ...)
 ```
+### SAFE_LOGX()
+`SAFE_LOGX()` работают аналогично, но всегда отпраляют через printf() и не переопределяются. Использовать в местах через которые происходит отправка логов.
 
 ## Уровень логирования 
 Уровень логгирования определяется в config.ini
