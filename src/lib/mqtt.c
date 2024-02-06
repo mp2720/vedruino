@@ -45,7 +45,7 @@ int mqtt_subscribe_topics(fl_topic_t topics[], int len) {
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         for (int i = 0; i < subs_topics.size; i++) {
             if (esp_mqtt_client_unsubscribe(mqtt_client, subs_topics.pairs[i].name) == -1) {
-                ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
+                DFLT_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
                 res = 1;
             }
         }
@@ -55,13 +55,13 @@ int mqtt_subscribe_topics(fl_topic_t topics[], int len) {
         for (int i = 0; i < subs_topics.size; i++) {
             if (esp_mqtt_client_subscribe(mqtt_client, (char *)subs_topics.pairs[i].name,
                                           subs_topics.pairs[i].qos) == -1) {
-                ESP_LOGE(TAG, "esp_mqtt_client_subscribe() error");
+                DFLT_LOGE(TAG, "esp_mqtt_client_subscribe() error");
                 res = 1;
             }
         }
         xSemaphoreGive(topics_mutex);
     } else {
-        ESP_LOGE(TAG, "failed to take topics_mutex");
+        DFLT_LOGE(TAG, "failed to take topics_mutex");
         res = 1;
     }
     return res;
@@ -76,14 +76,14 @@ static fl_topic_t *find_callback(const char *name) {
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
-        ESP_LOGE(TAG, "failed to take topics_mutex");
+        DFLT_LOGE(TAG, "failed to take topics_mutex");
     }
     return NULL;
 }
 
 int mqtt_unsubscribe_topic(const char *name) {
     if (esp_mqtt_client_unsubscribe(mqtt_client, name) == -1) {
-        ESP_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
+        DFLT_LOGE(TAG, "esp_mqtt_client_unsubscribe() error");
         return 1;
     }
     return 0;
@@ -95,7 +95,7 @@ int mqtt_publish(const char *topic, const char *data, size_t data_size, int qos,
 
     int res = esp_mqtt_client_publish(mqtt_client, topic, data, data_size, qos, (int)retain);
     if (res < 0) {
-        ESP_LOGE(TAG, "esp_mqtt_client_publish() error");
+        DFLT_LOGE(TAG, "esp_mqtt_client_publish() error");
         return 1;
     }
     return 0;
@@ -141,38 +141,39 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     switch (event->event_id) {
 
     case MQTT_EVENT_CONNECTED: {
-        ESP_LOGD(TAG, "MQTT_EVENT_CONNECTED");
+        DFLT_LOGD(TAG, "MQTT_EVENT_CONNECTED");
         vTaskResume(cb_task.task.handle);
         mqtt_connect_flag = 1;
     } break;
 
     case MQTT_EVENT_DISCONNECTED: {
-        ESP_LOGD(TAG, "MQTT_EVENT_DISCONNECTED");
+        DFLT_LOGD(TAG, "MQTT_EVENT_DISCONNECTED");
         vTaskSuspend(cb_task.task.handle);
         mqtt_connect_flag = 0;
     } break;
 
     case MQTT_EVENT_SUBSCRIBED: {
-        ESP_LOGD(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        DFLT_LOGD(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
     } break;
 
     case MQTT_EVENT_UNSUBSCRIBED: {
-        ESP_LOGD(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        DFLT_LOGD(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
     } break;
 
     case MQTT_EVENT_PUBLISHED: {
-        ESP_LOGD(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        DFLT_LOGD(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
     } break;
 
     case MQTT_EVENT_DATA: {
 
-        ESP_LOGD(TAG, "MQTT_EVENT_DATA");
-        ESP_LOGV(TAG, "TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        ESP_LOGV(TAG, "DATA=%.*s\r\n", event->data_len, event->data);
+        DFLT_LOGD(TAG, "MQTT_EVENT_DATA");
+        DFLT_LOGV(TAG, "TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        DFLT_LOGV(TAG, "DATA=%.*s\r\n", event->data_len, event->data);
 
         char *topic_copy = (char *)malloc(event->topic_len + 1);
         if (!topic_copy) {
-            ESP_LOGE(TAG, "topic_copy malloc() error, no memory, topic size: %d", event->topic_len);
+            DFLT_LOGE(TAG, "topic_copy malloc() error, no memory, topic size: %d",
+                      event->topic_len);
             return;
         }
 
@@ -181,7 +182,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
 
         fl_topic_t *pair = find_callback(topic_copy);
         if (!pair) {
-            ESP_LOGW(TAG, "Callback for \"%s\" topic not found", topic_copy);
+            DFLT_LOGW(TAG, "Callback for \"%s\" topic not found", topic_copy);
             free(topic_copy);
             break;
         }
@@ -193,7 +194,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
 
         char *data_copy = (char *)malloc(event->data_len + 1);
         if (!data_copy) {
-            ESP_LOGE(TAG, "data_copy malloc() error, no memory, data size: %d", event->data_len);
+            DFLT_LOGE(TAG, "data_copy malloc() error, no memory, data size: %d", event->data_len);
             return;
         }
 
@@ -207,7 +208,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
 
         BaseType_t res = xQueueSend(cb_task.queue.handle, &args, pdMS_TO_TICKS(1000));
         if (res != pdTRUE) {
-            ESP_LOGE(TAG, "Callback queue owerflow");
+            DFLT_LOGE(TAG, "Callback queue owerflow");
             free(args.data);
             free(args.topic);
             break;
@@ -216,11 +217,11 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     } break;
 
     case MQTT_EVENT_ERROR: {
-        ESP_LOGE(TAG, "MQTT_EVENT_ERROR");
+        DFLT_LOGE(TAG, "MQTT_EVENT_ERROR");
     } break;
 
     default: {
-        ESP_LOGD(TAG, "Other event id:%d", event->event_id);
+        DFLT_LOGD(TAG, "Other event id:%d", event->event_id);
     } break;
     }
 }
@@ -243,7 +244,7 @@ void mqtt_init() {
     vTaskSuspend(cb_task.task.handle);
     topics_mutex = xSemaphoreCreateMutex();
 
-    ESP_LOGI(TAG, "initialized");
+    DFLT_LOGI(TAG, "initialized");
 }
 
 int mqtt_connect(const char *broker_host, uint16_t broker_port, const char *username,
@@ -268,7 +269,7 @@ int mqtt_connect(const char *broker_host, uint16_t broker_port, const char *user
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!mqtt_client) {
-        ESP_LOGE(TAG, "esp_mqtt_client_init() error");
+        DFLT_LOGE(TAG, "esp_mqtt_client_init() error");
         return 1;
     }
 
@@ -276,19 +277,19 @@ int mqtt_connect(const char *broker_host, uint16_t broker_port, const char *user
     int res1 = esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID,
                                               mqtt_event_handler, NULL);
     if (res1 != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_register_event() error: %d", (int)res1);
+        DFLT_LOGE(TAG, "esp_mqtt_client_register_event() error: %d", (int)res1);
         return 1;
     }
 #endif
 
     if (!cb_task.task.handle || !cb_task.queue.handle) {
-        ESP_LOGE(TAG, "Task or queue not initialized, run mqtt_init()");
+        DFLT_LOGE(TAG, "Task or queue not initialized, run mqtt_init()");
         return 1;
     }
 
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_start() error: %d", (int)res);
+        DFLT_LOGE(TAG, "esp_mqtt_client_start() error: %d", (int)res);
         return 1;
     }
 
@@ -298,7 +299,7 @@ int mqtt_connect(const char *broker_host, uint16_t broker_port, const char *user
 int mqtt_disconnect() {
     esp_err_t res = esp_mqtt_client_disconnect(mqtt_client);
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_disconnect error: %d", (int)res);
+        DFLT_LOGE(TAG, "esp_mqtt_client_disconnect error: %d", (int)res);
         return 1;
     }
     if (cb_task.task.handle)
@@ -308,12 +309,12 @@ int mqtt_disconnect() {
 
 int mqtt_stop() {
     if (!mqtt_client) {
-        ESP_LOGW(TAG, "Nothing to stop");
+        DFLT_LOGW(TAG, "Nothing to stop");
         return 1;
     }
     esp_err_t res = esp_mqtt_client_stop(mqtt_client);
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_stop fail: %d", res);
+        DFLT_LOGE(TAG, "esp_mqtt_client_stop fail: %d", res);
         return 1;
     }
     if (cb_task.task.handle)
@@ -323,14 +324,14 @@ int mqtt_stop() {
 
 int mqtt_resume() {
     if (!mqtt_client) {
-        ESP_LOGW(TAG, "Nothing to resume");
+        DFLT_LOGW(TAG, "Nothing to resume");
         return 1;
     }
     if (cb_task.task.handle)
         vTaskResume(cb_task.task.handle);
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "esp_mqtt_client_start fail: %d", res);
+        DFLT_LOGE(TAG, "esp_mqtt_client_start fail: %d", res);
         return 1;
     }
     return 0;

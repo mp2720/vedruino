@@ -60,7 +60,7 @@ int ota_server_start(int _port) {
 
     ssfd = socket(AF_INET, SOCK_STREAM, 0);
     if (ssfd < 0) {
-        ESP_LOGE(TAG, "socket() error: %s", strerror(errno));
+        DFLT_LOGE(TAG, "socket() error: %s", strerror(errno));
         return -1;
     }
 
@@ -70,18 +70,18 @@ int ota_server_start(int _port) {
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(ssfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-        ESP_LOGE(TAG, "bind() failed: %s", strerror(errno));
+        DFLT_LOGE(TAG, "bind() failed: %s", strerror(errno));
         return -1;
     }
 
     if (listen(ssfd, 1) < 0) {
-        ESP_LOGE(TAG, "listen() failed: %s", strerror(errno));
+        DFLT_LOGE(TAG, "listen() failed: %s", strerror(errno));
         return -1;
     }
 
     if (xTaskCreate(&server_task, "ota_tcp_server", SERVER_TASK_STACK_SIZE, NULL, tskIDLE_PRIORITY,
                     NULL) != pdPASS) {
-        ESP_LOGE(TAG, "xTaskCreate() failed");
+        DFLT_LOGE(TAG, "xTaskCreate() failed");
         return -1;
     }
 
@@ -93,41 +93,41 @@ static void server_task(UNUSED void *p) {
     socklen_t caddr_len = sizeof ca;
     char ca_str[INET_ADDRSTRLEN];
     while (1) {
-        ESP_LOGI(TAG, "listening on port %d", port);
+        DFLT_LOGI(TAG, "listening on port %d", port);
 
         csfd = accept(ssfd, (struct sockaddr *)&ca, &caddr_len);
         int64_t start_time = esp_timer_get_time();
         if (csfd < 0) {
-            ESP_LOGE(TAG, "accept() failed: %s", strerror(errno));
+            DFLT_LOGE(TAG, "accept() failed: %s", strerror(errno));
             goto error_cont;
         }
 
         if (inet_ntop(AF_INET, &(ca.sin_addr), ca_str, INET_ADDRSTRLEN) == NULL) {
-            ESP_LOGE(TAG, "inet_ntop() failed: %s", strerror(errno));
+            DFLT_LOGE(TAG, "inet_ntop() failed: %s", strerror(errno));
             goto error_cont;
         }
 
-        ESP_LOGI(TAG, "update request from %s:%d", ca_str, ntohl(ca.sin_port));
+        DFLT_LOGI(TAG, "update request from %s:%d", ca_str, ntohl(ca.sin_port));
 
         if (read_header() < 0) {
-            ESP_LOGW(TAG, "request has invalid header");
+            DFLT_LOGW(TAG, "request has invalid header");
             goto error_cont;
         }
 
-        ESP_LOGI(TAG, "size of new firmware: %zu, md5: %s", header.size, header.md5str);
-        ESP_LOGI(TAG, "retreiving firmware...");
+        DFLT_LOGI(TAG, "size of new firmware: %zu, md5: %s", header.size, header.md5str);
+        DFLT_LOGI(TAG, "retreiving firmware...");
         if (update() < 0) {
-            ESP_LOGE(TAG, "failed to update, staying on the old version");
+            DFLT_LOGE(TAG, "failed to update, staying on the old version");
             goto error_cont;
         }
 
         float secs = (float)(esp_timer_get_time() - start_time) / 1e6f;
-        ESP_LOGI(TAG, "updated in %f secs", secs);
+        DFLT_LOGI(TAG, "updated in %f secs", secs);
 
         write(csfd, OK_TCP_RESPONSE, sizeof(OK_TCP_RESPONSE) - 1);
         close(csfd);
 
-        ESP_LOGI(TAG, "new firmware is loaded, rebooting...");
+        DFLT_LOGI(TAG, "new firmware is loaded, rebooting...");
         esp_restart();
 
     error_cont:
@@ -159,11 +159,11 @@ static inline int update() {
 
     err = esp_ota_begin(part, header.size, &ota_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_ota_begin() failed: %s", esp_err_to_name(err));
+        DFLT_LOGE(TAG, "esp_ota_begin() failed: %s", esp_err_to_name(err));
         return -1;
     }
 
-    ESP_LOGI(TAG, "writing firmware to %s", part->label);
+    DFLT_LOGI(TAG, "writing firmware to %s", part->label);
 
     int64_t start_time = esp_timer_get_time();
 
@@ -178,12 +178,12 @@ static inline int update() {
     while (loaded < header.size) {
         int n = read(csfd, buf, FIRMWARE_BUF_SIZE);
         if (n < 0) {
-            ESP_LOGE(TAG, "read() failed: %s", strerror(errno));
+            DFLT_LOGE(TAG, "read() failed: %s", strerror(errno));
             goto err_abort_ota;
         }
 
         if (n == 0) {
-            ESP_LOGE(TAG, "expected %zu bytes of firmware, got %zu", header.size, loaded);
+            DFLT_LOGE(TAG, "expected %zu bytes of firmware, got %zu", header.size, loaded);
             goto err_abort_ota;
         }
 
@@ -192,7 +192,7 @@ static inline int update() {
 
         err = esp_ota_write(ota_handle, buf, n);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "esp_ota_write() failed: %s", esp_err_to_name(err));
+            DFLT_LOGE(TAG, "esp_ota_write() failed: %s", esp_err_to_name(err));
             goto err_abort_ota;
         }
     }
@@ -203,7 +203,7 @@ static inline int update() {
     if (memcmp(header.md5, computed_md5, MD5_SIZE) != 0) {
         char computed_md5str[MD5STR_SIZE];
         md5str(computed_md5, computed_md5str);
-        ESP_LOGE(TAG, "md5 differs %s (given) != %s (computed)", header.md5str, computed_md5str);
+        DFLT_LOGE(TAG, "md5 differs %s (given) != %s (computed)", header.md5str, computed_md5str);
         goto err_abort_ota;
     }
 
@@ -214,12 +214,12 @@ static inline int update() {
     else
         avg_speed = (float)header.size / secs;
 
-    ESP_LOGI(TAG, "loaded %zu bytes in %f secs with avg speed %f b/s", header.size, secs,
+    DFLT_LOGI(TAG, "loaded %zu bytes in %f secs with avg speed %f b/s", header.size, secs,
              avg_speed);
 
     err = esp_ota_end(ota_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_ota_end() failed: %s", esp_err_to_name(err));
+        DFLT_LOGE(TAG, "esp_ota_end() failed: %s", esp_err_to_name(err));
         goto err_abort_ota;
     }
 
@@ -227,7 +227,7 @@ static inline int update() {
 
     err = esp_ota_set_boot_partition(part);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_ota_set_boot_partition() failed: %s", esp_err_to_name(err));
+        DFLT_LOGE(TAG, "esp_ota_set_boot_partition() failed: %s", esp_err_to_name(err));
         return -1;
     }
 

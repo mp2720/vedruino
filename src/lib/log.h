@@ -25,45 +25,85 @@
 #define LIBLOG_LEVEL CONF_LOG_LEVEL
 #endif
 
-#undef ESP_LOGE
-#undef ESP_LOGW
-#undef ESP_LOGI
-#undef ESP_LOGD
-#undef ESP_LOGV
+#undef DFLT_LOGE
+#undef DFLT_LOGW
+#undef DFLT_LOGI
+#undef DFLT_LOGD
+#undef DFLT_LOGV
+#undef SAFE_LOGE
+#undef SAFE_LOGW
+#undef SAFE_LOGI
+#undef SAFE_LOGD
+#undef SAFE_LOGV
 
 #if LIBLOG_LEVEL >= 1
-#define ESP_LOGE(tag, format, ...)                                                                 \
+#define DFLT_LOGE(tag, format, ...)                                                                 \
     log_output(CLR_E "E [" CLR_T "%s" CLR_E "] " format CLR_T "\n", tag, ##__VA_ARGS__)
 #else
-#define ESP_LOGE(tag, format, ...)
+#define DFLT_LOGE(tag, format, ...)
 #endif
 
 #if LIBLOG_LEVEL >= 2
-#define ESP_LOGW(tag, format, ...)                                                                 \
+#define DFLT_LOGW(tag, format, ...)                                                                 \
     log_output(CLR_W "W [" CLR_T "%s" CLR_W "] " format CLR_T "\n", tag, ##__VA_ARGS__)
 #else
-#define ESP_LOGW(tag, format, ...)
+#define DFLT_LOGW(tag, format, ...)
 #endif
 
 #if LIBLOG_LEVEL >= 3
-#define ESP_LOGI(tag, format, ...)                                                                 \
+#define DFLT_LOGI(tag, format, ...)                                                                 \
     log_output(CLR_I "I [" CLR_T "%s" CLR_I "] " format CLR_T "\n", tag, ##__VA_ARGS__)
 #else
-#define ESP_LOGI(tag, format, ...)
+#define DFLT_LOGI(tag, format, ...)
 #endif
 
 #if LIBLOG_LEVEL >= 4
-#define ESP_LOGD(tag, format, ...)                                                                 \
+#define DFLT_LOGD(tag, format, ...)                                                                 \
     log_output(CLR_D "D [" CLR_T "%s" CLR_D "] " format CLR_T "\n", tag, ##__VA_ARGS__)
 #else
-#define ESP_LOGD(tag, format, ...)
+#define DFLT_LOGD(tag, format, ...)
 #endif
 
 #if LIBLOG_LEVEL >= 5
-#define ESP_LOGV(tag, format, ...)                                                                 \
+#define DFLT_LOGV(tag, format, ...)                                                                 \
     log_output(CLR_V "V [" CLR_T "%s" CLR_V "] " format CLR_T "\n", tag, ##__VA_ARGS__)
 #else
-#define ESP_LOGV(tag, format, ...)
+#define DFLT_LOGV(tag, format, ...)
+#endif
+
+#if LIBLOG_LEVEL >= 1
+#define SAFE_LOGE(tag, format, ...)                                                                \
+    printf(CLR_E "E [" CLR_T "%s" CLR_E "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
+#else
+#define SAFE_LOGE(tag, format, ...)
+#endif
+
+#if LIBLOG_LEVEL >= 2
+#define SAFE_LOGW(tag, format, ...)                                                                \
+    printf(CLR_W "W [" CLR_T "%s" CLR_W "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
+#else
+#define SAFE_LOGW(tag, format, ...)
+#endif
+
+#if LIBLOG_LEVEL >= 3
+#define SAFE_LOGI(tag, format, ...)                                                                \
+    printf(CLR_I "I [" CLR_T "%s" CLR_I "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
+#else
+#define SAFE_LOGEI(tag, format, ...)
+#endif
+
+#if LIBLOG_LEVEL >= 4
+#define SAFE_LOGD(tag, format, ...)                                                                \
+    printf(CLR_D "D [" CLR_T "%s" CLR_D "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
+#else
+#define SAFE_LOGD(tag, format, ...)
+#endif
+
+#if LIBLOG_LEVEL >= 5
+#define SAFE_LOGV(tag, format, ...)                                                                \
+    printf(CLR_V "V [" CLR_T "%s" CLR_V "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
+#else
+#define SAFE_LOGV(tag, format, ...)
 #endif
 
 typedef int (*printf_like_t)(const char *, ...);
