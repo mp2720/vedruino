@@ -2,53 +2,40 @@
 #include "lib/lib.h"
 #include <Arduino.h>
 #include <WiFi.h>
-#include <time.h>
 
-static const char *TAG = "MAIN";
+static const char *TAG = "main";
 
-void start_wifi() {
-    WiFi.mode(WIFI_STA); // Optional
-    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
-    puts("\nConnecting WIFI");
-    while (WiFi.status() != WL_CONNECTED) {
-        printf(".");
-        fflush(stdout);
-        delay(100);
-    }
-    puts("\nConnected to the WiFi network");
-    printf("Local ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
-}
-
-void start_log() {
-    log_socket = tcplog_connect(CONF_LOG_HOST, CONF_LOG_PORT);
-    log_output = tcplog_printf;
-}
-
-void start_mqtt() {
-    mqtt_init();
-    mqtt_connect(CONF_MQTT_HOST, CONF_MQTT_PORT, CONF_MQTT_USER, CONF_MQTT_PASSWD);
-    while (!mqtt_is_connected()) {
-        printf(".");
-        fflush(stdout);
-        delay(100);
-    }
-    puts("");
-    // mqtt_subscribe_topics(topics, sizeof(topics)/sizeof(topics[0]));
-}
+extern "C" void udp_test();
 
 void setup() {
     Serial.begin(CONF_BAUD);
+
+    ESP_LOGI(TAG, "executing startup delay");
     delay(CONF_STARTUP_DELAY);
 
-    start_wifi();
-    start_log();
-    start_mqtt();
+    char running_part[MISC_PART_LABEL_SIZE];
+    misc_running_partition(running_part);
+    ESP_LOGI(TAG, "running %s", running_part);
+    ESP_LOGI(TAG, "built on " __DATE__ " at " __TIME__);
+
+    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
+    ESP_LOGI(TAG, "connecting to %s...", CONF_WIFI_SSID);
+    ESP_LOGI(TAG, "board MAC: %s", WiFi.macAddress().c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(100);
+    }
+    ESP_LOGI(TAG, "WiFi connection established");
+    ESP_LOGI(TAG, "board IP: %s", WiFi.localIP().toString().c_str());
 
 #if CONF_TCP_OTA_ENABLED
     ota_server_start(CONF_TCP_OTA_PORT);
 #endif
+
+    udp_test();
+
+    ESP_LOGI(TAG, "setup() finished");
 }
 
 void loop() {
-    delay(1000);
+    delay(10000);
 }
