@@ -2,6 +2,7 @@
 
 #include "../conf.h"
 #include "macro.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "log.h"
@@ -14,7 +15,7 @@ EXTERNC_BEGIN
 
 // === ota ===
 
-int ota_server_start(int port);
+bool ota_server_start();
 
 // === sysmon ===
 

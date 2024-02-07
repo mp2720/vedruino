@@ -80,6 +80,7 @@ if __name__ == "__main__":
 
 #define CONF_TCP_OTA_ENABLED {int(conf['tcp_ota']['enabled'] == 'true')}
 #define CONF_TCP_OTA_PORT {int(conf['tcp_ota']['port'])}
+#define CONF_TCP_OTA_VERIFY_MD5 {int(conf['tcp_ota']['verify_md5'] == 'true')}
 
 #define CONF_SYSMON_ENABLED {int(conf['sysmon']['enabled'] == 'true')}
 #define CONF_SYSMON_LOG_INTERVAL_MS {int(conf['sysmon']['log_interval_ms'])}

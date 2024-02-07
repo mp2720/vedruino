@@ -27,6 +27,7 @@ color=true
 [tcp_ota]
 enabled=true
 port=5256
+verify_md5=false
 
 [sysmon]
 enabled=false
