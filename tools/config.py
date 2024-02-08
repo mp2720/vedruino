@@ -4,90 +4,196 @@ import configparser
 import argparse
 import sys
 
-from helpers import escape_str
+from typing import NoReturn
 
 CONF_PATH = "./config.ini"
 
+
+class Colors:
+    error = '\033[91m'
+    enabled = '\033[92m'
+    disabled = '\033[93m'
+    reset = '\033[0m'
+
+
+def error(msg: str) -> NoReturn:
+    print(Colors.error + msg + Colors.reset, file=sys.stderr)
+    exit(1)
+
+
 conf = configparser.ConfigParser()
 if not conf.read(CONF_PATH):
-    print(f"error opening {CONF_PATH}", file=sys.stderr)
-    sys.exit(1)
+    error(f"error opening {CONF_PATH}")
+
+ap = argparse.ArgumentParser(description='Config tool')
+ap.add_argument(
+        '-c',
+        '--gen-header',
+        action='store_true',
+        help='generate src/conf.h'
+)
+ap.add_argument(
+        '-g',
+        '--get-value',
+        dest='config_key',
+        action='store',
+        help='get value from config.ini'
+)
+args = ap.parse_args()
+
+if bool(args.config_key) == args.gen_header:
+    error('provide exactly one flag (run with -h for help)')
 
 
-def getparam(section: str, key: str) -> str:
-    return conf[section][key]
+def get_param_or_fail(section: str, key: str) -> str:
+    try:
+        return conf[section][key]
+    except KeyError:
+        error(f"[{section}]:{key} not found in {CONF_PATH}")
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description='Config tool')
-    ap.add_argument(
-            '-c',
-            '--gen-cpp',
-            action='store_true',
-            help='generate src/conf.cpp and src/conf.h'
-    )
-    
-    ap.add_argument(
-            '-g',
-            '--get-value',
-            dest='config_key',
-            action='store',
-            help='get value from config.ini'
-    )
-    
-    args = ap.parse_args()
-    
-    if bool(args.config_key) == args.gen_cpp:
-        ap.error('provide exactly one flag (run with -h for help)')
-    
-    
-    if args.config_key:
-        toks = args.config_key.split(':')
-        if len(toks) > 2:
-            print("key must look like 'section:key' or 'key'")
-            sys.exit(1)
-    
-        if len(toks) == 2:
-            value = conf[toks[0]][toks[1]]
+if args.config_key:
+    toks = args.config_key.split(':')
+    if len(toks) != 2:
+        error("key must look like 'section:key' or 'key'")
+
+    value = get_param_or_fail(*toks)
+
+    print(value)
+
+
+def escape_str(s: str) -> str:
+    s = s.replace('"', '\\"')
+    s = s.replace('\n', '\\n')
+    return s
+
+
+def add_def(section: str, key: str, value = None, type_: str | None = None):
+    global conf_h
+
+    if value is None:
+        assert type_ is not None
+        value = get_param_or_fail(section, key)
+        if type_ == "int":
+            try:
+                value = int(value)
+            except ValueError:
+                raise ValueError(f"{section}:{key} expected to be int")
+        elif type_ == 'str':
+            pass
+        elif type_ == 'bool':
+            try:
+                value = {'true': True, 'false': False}[value]
+            except IndexError:
+                raise ValueError("f{section}:{key} expected to be true or false")
         else:
-            value = conf[toks[0]]
+            assert False, f"unknown type {type_}"
+
+    if type(value) is int:
+        value = value
+    elif type(value) is str:
+        value = f'"{escape_str(value)}"'
+    elif type(value) is bool:
+        value = int(value)
+    else:
+        assert False, f"type {type(value)} is not supported"
+
+    section = section.replace('.', '_')
+    key = key.replace('.', '_')
+
+    conf_h += f"#define CONF_{section.upper()}_{key.upper()} {value}\n"
+
+
+def is_module_enabled(section: str):
+    return section in conf and get_param_or_fail(section, 'enabled') == 'true'
+
+
+def add_section_comm(section: str):
+    global conf_h
+    conf_h += f"\n// [{section}]\n\n"
+
+
+def add_module(section: str, key_types: dict[str, str]):
+    add_section_comm(section)
+    enabled = is_module_enabled(section)
+    if not enabled:
+        print(f"{section} {Colors.disabled}DISABLED{Colors.reset}")
+        add_def(section, "enabled", value=False)
+    else:
+        print(f"{section} {Colors.enabled}ENABLED{Colors.reset}")
+        add_def(section, "enabled", type_="bool")
+
+    for k, t in key_types.items():
+        if enabled:
+            add_def(section, k, type_=t)
+        else:
+            default_value = {'int': 0, 'bool': 0, 'str': ""}[t]
+            add_def(section, k, value=default_value)
+
+
+if args.gen_header:
+    conf_h = "// Файл сгенерирован автоматически с помощью tools/conf.py\n"
+    conf_h += "// Изменять нужно ./config.ini\n"
     
-        print(value)
+    try:
+        add_section_comm("board")
+        add_def("board", "baud", type_='int')
+        add_def("board", "startup_delay", type_='int')
+
+        add_section_comm("log")
+        add_def("log", "level", type_='int')
+
+        add_module("log.udp", {
+            "broadcast_port": 'int'
+        })
+
+        add_module("log.async", {})
     
-    if args.gen_cpp:
-        conf_h = f"""/*
- * Файл сгенерирован автоматически с помощью tools/conf.py
- * Изменять нужно ./config.ini
- */
+        add_module("wifi", {
+            'ssid': 'str',
+            'password': 'str'
+        })
 
-#pragma once
+        add_module("mqtt", {
+            'host': 'str',
+            'port': 'int',
+            'user': 'str',
+            'password': 'str'
+        })
 
-#define CONF_BAUD {conf['board']['baud']}
-#define CONF_STARTUP_DELAY {int(conf['board']['startup_delay'])}
+        add_module("ota", {
+            'port': 'int',
+        })
 
-#define CONF_WIFI_SSID "{escape_str(conf['wifi']['ssid'])}"
-#define CONF_WIFI_PASSWD "{escape_str(conf['wifi']['password'])}"
+        add_module("sysmon", {
+            'enable_log': 'bool',
+            'log_interval_ms': 'int',
+            'monitor_cpu': 'bool',
+            'monitor_heap': 'bool',
+            'monitor_tasks': 'bool',
+            'dualcore': 'bool',
+        })
 
-#define CONF_MQTT_HOST "{escape_str(conf['mqtt']['host'])}"
-#define CONF_MQTT_PORT {int(conf['mqtt']['port'])}
-#define CONF_MQTT_USER "{escape_str(conf['mqtt']['user'])}"
-#define CONF_MQTT_PASSWD "{escape_str(conf['mqtt']['password'])}"
+        add_module('mdns', {
+            'board_name': 'str'
+        })
 
-#define CONF_LOG_HOST "{escape_str(conf['tcp_log']['host'])}"
-#define CONF_LOG_PORT "{escape_str(conf['tcp_log']['port'])}"
-#define CONF_LOG_LEVEL {int(conf['tcp_log']['level'])}
-#define CONF_LOG_COLOR_ENABLED {int(conf['tcp_log']['color'] == 'true')}
+        deps = {
+            'log.udp': ['wifi'],
+            'sysmon': ['log.async'],
+            'mqtt': ['wifi'],
+            'ota': ['wifi']
+        }
 
-#define CONF_TCP_OTA_ENABLED {int(conf['tcp_ota']['enabled'] == 'true')}
-#define CONF_TCP_OTA_PORT {int(conf['tcp_ota']['port'])}
+        for m, dep_list in deps.items():
+            if not is_module_enabled(m):
+                continue
 
-#define CONF_SYSMON_ENABLED {int(conf['sysmon']['enabled'] == 'true')}
-#define CONF_SYSMON_LOG_INTERVAL_MS {int(conf['sysmon']['log_interval_ms'])}
-#define CONF_SYSMON_MONITOR_CPU {int(conf['sysmon']['monitor_cpu'] == 'true')}
-#define CONF_SYSMON_MONITOR_HEAP {int(conf['sysmon']['monitor_heap'] == 'true')}
-#define CONF_SYSMON_MONITOR_TASKS {int(conf['sysmon']['monitor_tasks'] == 'true')}
-#define CONF_SYSMON_DUALCORE {int(conf['sysmon']['dualcore'] == 'true')}
-"""
-        with open("src/conf.h", "w+") as f:
-            f.write(conf_h)
-    
+            for d in dep_list:
+                if not is_module_enabled(d):
+                    error(f"module {d} is required for module {m}")
+    except ValueError as e:
+        error(repr(e))
+
+    open('src/conf.h', 'w+').write(conf_h)
+
