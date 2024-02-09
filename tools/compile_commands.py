@@ -15,7 +15,8 @@ EXTRA_ARGS = (
         "-Wall",
         "-Wextra",
         # "-std=c++11",
-        "-DSSIZE_MAX=2147483647"
+        "-DSSIZE_MAX=2147483647",
+        "-m32"
         )
 
 dic = json.load(sys.stdin)
