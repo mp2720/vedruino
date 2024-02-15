@@ -3,7 +3,7 @@ SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -n
 SKETCH=$(shell tools/config.py -g arduino:sketch_name)
 PORT=$(shell tools/config.py -g board:port)
 FQBN=$(shell tools/config.py -g board:fqbn)
-BAUD=$(shell tools/config.py -g board:baud)
+BAUD=$(shell tools/config.py -g log:uart_baud)
 BOARD_IP=$(shell tools/config.py -g board:ip)
 OTA_PORT=$(shell tools/config.py -g tcp_ota:port)
 

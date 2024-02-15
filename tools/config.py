@@ -137,18 +137,26 @@ if args.gen_header:
     
     try:
         add_section_comm("board")
-        add_def("board", "baud", type_='int')
         add_def("board", "startup_delay", type_='int')
 
         add_section_comm("log")
         add_def("log", "level", type_='int')
+        add_def("log", "print_file_line", type_='bool')
+        add_def("log", "print_time", type_='bool')
+        add_def("log", "print_color", type_='bool')
+        add_def("log", "uart_baud", type_='int')
 
-        add_module("log.udp", {
-            "broadcast_port": 'int'
+        add_module('mdns', {
+            'hostname': 'str'
         })
 
-        add_module("log.async", {})
-    
+        add_module('ip', {})
+
+        add_module("netlog", {
+            "tcp_port": 'int',
+            "write_uart": 'bool'
+        })
+
         add_module("wifi", {
             'ssid': 'str',
             'password': 'str'
@@ -174,15 +182,11 @@ if args.gen_header:
             'dualcore': 'bool',
         })
 
-        add_module('mdns', {
-            'board_name': 'str'
-        })
-
         deps = {
-            'log.udp': ['wifi'],
-            'sysmon': ['log.async'],
+            'ip': ['wifi'],
+            'netlog': ['ip'],
             'mqtt': ['wifi'],
-            'ota': ['wifi']
+            'ota': ['ip']
         }
 
         for m, dep_list in deps.items():

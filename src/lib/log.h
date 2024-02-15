@@ -2,112 +2,117 @@
 
 #include "../conf.h"
 #include "macro.h"
+#include <esp_timer.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-#if CONF_LOG_COLOR_ENABLED == 0
-#define CLR_E ""
-#define CLR_W ""
-#define CLR_I ""
-#define CLR_D ""
-#define CLR_V ""
-#define CLR_T ""
+EXTERNC_BEGIN
+
+extern FILE *pk_log_uartout;
+
+bool pk_log_init();
+
+EXTERNC_END
+
+#define PKLOG_STRINGIZE(x) _PKLOG_STRINGIZE2(x)
+#define _PKLOG_STRINGIZE2(x) #x
+
+#if CONF_LOG_PRINT_FILE_LINE
+#define _PKLOG_LINE ":" PKLOG_STRINGIZE(__LINE__)
 #else
-#define CLR_E "\033[91m\033[49m" // красный
-#define CLR_W "\033[93m\033[49m" // оранжевый
-#define CLR_I "\033[92m\033[49m" // зелёный
-#define CLR_D "\033[96m\033[49m" // голубой
-#define CLR_V "\033[90m\033[49m" // тёмно-серый
-#define CLR_T "\033[39m\033[49m" // сброс цвета
+#define _PKLOG_LINE ""
+#endif // CONF_PKLOG_PRINT_FILE_LINE
+
+#if CONF_LOG_PRINT_COLOR
+#define _PKLOG_CLR_E "\033[91m\033[49m" // красный
+#define _PKLOG_CLR_W "\033[93m\033[49m" // оранжевый
+#define _PKLOG_CLR_I "\033[92m\033[49m" // зелёный
+#define _PKLOG_CLR_D "\033[96m\033[49m" // голубой
+#define _PKLOG_CLR_V "\033[90m\033[49m" // тёмно-серый
+#define _PKLOG_CLR_R "\033[39m\033[49m" // сброс цвета
+#else
+#define _PKLOG_CLR_E ""
+#define _PKLOG_CLR_W ""
+#define _PKLOG_CLR_I ""
+#define _PKLOG_CLR_D ""
+#define _PKLOG_CLR_V ""
+#define _PKLOG_CLR_R ""
 #endif
 
-#ifndef CONF_LOG_LEVEL
-#define LIBLOG_LEVEL 5
+#define _PKLOG_LETTER_E "E"
+#define _PKLOG_LETTER_W "W"
+#define _PKLOG_LETTER_I "I"
+#define _PKLOG_LETTER_D "D"
+#define _PKLOG_LETTER_V "V"
+
+#define _PKLOG_NOP                                                                                 \
+    do {                                                                                           \
+    } while (0)
+
+// clang-format off
+#if CONF_LOG_PRINT_TIME
+#define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
+    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] (%d) " _PKLOG_CLR_##x fmt    \
+    _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
 #else
-#define LIBLOG_LEVEL CONF_LOG_LEVEL
-#endif
+#define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
+    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt         \
+    _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
+#endif // CONF_LOG_PRINT_TIME
+// clang-format on
 
-#undef DFLT_LOGE
-#undef DFLT_LOGW
-#undef DFLT_LOGI
-#undef DFLT_LOGD
-#undef DFLT_LOGV
-#undef SAFE_LOGE
-#undef SAFE_LOGW
-#undef SAFE_LOGI
-#undef SAFE_LOGD
-#undef SAFE_LOGV
+#define _PKLOGX_STDOUT(x, tag, fmt, ...) printf(_PKLOGX_ARGS(x, tag, fmt, ##__VA_ARGS__))
+#define _PKLOGX_UART(x, tag, fmt, ...)                                                             \
+    fprintf(pk_log_uartout, _PKLOGX_ARGS(x, tag, fmt, ##__VA_ARGS__))
 
-#if LIBLOG_LEVEL >= 1
-#define DFLT_LOGE(tag, format, ...)                                                                 \
-    log_output(CLR_E "E [" CLR_T "%s" CLR_E "] " format CLR_T "\n", tag, ##__VA_ARGS__)
+#if CONF_LOG_LEVEL >= 1
+#define PKLOGE_TAG(tag, fmt, ...) _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__)
+#define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__)
 #else
-#define DFLT_LOGE(tag, format, ...)
-#endif
+#define PKLOGE_TAG(tag, fmt, ...) _PKLOG_NOP
+#define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOG_NOP
+#endif // CONF_PKLOG_LEVEL >= 1
 
-#if LIBLOG_LEVEL >= 2
-#define DFLT_LOGW(tag, format, ...)                                                                 \
-    log_output(CLR_W "W [" CLR_T "%s" CLR_W "] " format CLR_T "\n", tag, ##__VA_ARGS__)
+#if CONF_LOG_LEVEL >= 2
+#define PKLOGW_TAG(tag, fmt, ...) _PKLOGX_STDOUT(W, tag, fmt, ##__VA_ARGS__)
+#define PKLOGW_UART_TAG(tag, fmt, ...) _PKLOGX_UART(W, tag, fmt, ##__VA_ARGS__)
 #else
-#define DFLT_LOGW(tag, format, ...)
-#endif
+#define PKLOGW_TAG(tag, fmt, ...) _PKLOG_NOP
+#define PKLOGW_UART_TAG(tag, fmt, ...) _PKLOG_NOP
+#endif // CONF_PKLOG_LEVEL >= 2
 
-#if LIBLOG_LEVEL >= 3
-#define DFLT_LOGI(tag, format, ...)                                                                 \
-    log_output(CLR_I "I [" CLR_T "%s" CLR_I "] " format CLR_T "\n", tag, ##__VA_ARGS__)
+#if CONF_LOG_LEVEL >= 3
+#define PKLOGI_TAG(tag, fmt, ...) _PKLOGX_STDOUT(I, tag, fmt, ##__VA_ARGS__)
+#define PKLOGI_UART_TAG(tag, fmt, ...) _PKLOGX_UART(I, tag, fmt, ##__VA_ARGS__)
 #else
-#define DFLT_LOGI(tag, format, ...)
-#endif
+#define PKLOGI_TAG(tag, fmt, ...) _PKLOG_NOP
+#define PKLOGI_UART_TAG(tag, fmt, ...) _PKLOG_NOP
+#endif // CONF_PKLOG_LEVEL >= 3
 
-#if LIBLOG_LEVEL >= 4
-#define DFLT_LOGD(tag, format, ...)                                                                 \
-    log_output(CLR_D "D [" CLR_T "%s" CLR_D "] " format CLR_T "\n", tag, ##__VA_ARGS__)
+#if CONF_LOG_LEVEL >= 4
+#define PKLOGD_TAG(tag, fmt, ...) _PKLOGX_STDOUT(D, tag, fmt, ##__VA_ARGS__)
+#define PKLOGD_UART_TAG(tag, fmt, ...) _PKLOGX_UART(D, tag, fmt, ##__VA_ARGS__)
 #else
-#define DFLT_LOGD(tag, format, ...)
-#endif
+#define PKLOGD_TAG(tag, fmt, ...) _PKLOG_NOP
+#define PKLOGD_UART_TAG(tag, fmt, ...) _PKLOG_NOP
+#endif // CONF_PKLOG_LEVEL >= 4
 
-#if LIBLOG_LEVEL >= 5
-#define DFLT_LOGV(tag, format, ...)                                                                 \
-    log_output(CLR_V "V [" CLR_T "%s" CLR_V "] " format CLR_T "\n", tag, ##__VA_ARGS__)
+#if CONF_LOG_LEVEL >= 5
+#define PKLOGV_TAG(tag, fmt, ...) _PKLOGX_STDOUT(V, tag, fmt, ##__VA_ARGS__)
+#define PKLOGV_UART_TAG(tag, fmt, ...) _PKLOGX_UART(V, tag, fmt, ##__VA_ARGS__)
 #else
-#define DFLT_LOGV(tag, format, ...)
-#endif
+#define PKLOGV_TAG(tag, fmt, ...) _PKLOG_NOP
+#define PKLOGV_UART_TAG(tag, fmt, ...) _PKLOG_NOP
+#endif // CONF_PKLOG_LEVEL >= 5
 
-#if LIBLOG_LEVEL >= 1
-#define SAFE_LOGE(tag, format, ...)                                                                \
-    printf(CLR_E "E [" CLR_T "%s" CLR_E "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
-#else
-#define SAFE_LOGE(tag, format, ...)
-#endif
+#define PKLOGE(...) PKLOGE_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGW(...) PKLOGW_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGI(...) PKLOGI_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGD(...) PKLOGD_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGV(...) PKLOGV_TAG(TAG, ##__VA_ARGS__)
 
-#if LIBLOG_LEVEL >= 2
-#define SAFE_LOGW(tag, format, ...)                                                                \
-    printf(CLR_W "W [" CLR_T "%s" CLR_W "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
-#else
-#define SAFE_LOGW(tag, format, ...)
-#endif
-
-#if LIBLOG_LEVEL >= 3
-#define SAFE_LOGI(tag, format, ...)                                                                \
-    printf(CLR_I "I [" CLR_T "%s" CLR_I "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
-#else
-#define SAFE_LOGEI(tag, format, ...)
-#endif
-
-#if LIBLOG_LEVEL >= 4
-#define SAFE_LOGD(tag, format, ...)                                                                \
-    printf(CLR_D "D [" CLR_T "%s" CLR_D "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
-#else
-#define SAFE_LOGD(tag, format, ...)
-#endif
-
-#if LIBLOG_LEVEL >= 5
-#define SAFE_LOGV(tag, format, ...)                                                                \
-    printf(CLR_V "V [" CLR_T "%s" CLR_V "] (safe) " format CLR_T "\n", tag, ##__VA_ARGS__)
-#else
-#define SAFE_LOGV(tag, format, ...)
-#endif
-
-typedef int (*printf_like_t)(const char *, ...);
-
-// указатель на функцию вывода логов. Изначально printf(), изменить на tcp_log_printf() для отправки
-// по сети
-EXTERNC printf_like_t log_output;
+#define PKLOGE_UART(...) PKLOGE_UART_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGW_UART(...) PKLOGW_UART_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGI_UART(...) PKLOGI_UART_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGD_UART(...) PKLOGD_UART_TAG(TAG, ##__VA_ARGS__)
+#define PKLOGV_UART(...) PKLOGV_UART_TAG(TAG, ##__VA_ARGS__)
