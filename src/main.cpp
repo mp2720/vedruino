@@ -12,6 +12,8 @@ static const char *TAG = "main";
 static int cnt[10];
 static bool done[10];
 
+extern "C" void tcp_test();
+
 static void task(UNUSED void *p) {
     int n = (int)p;
     for (int i = 0; i < 1000; ++i) {
@@ -27,7 +29,7 @@ static void task(UNUSED void *p) {
 }
 
 void setup() {
-    Serial.begin(CONF_LOG_UART_BAUD);
+    /* Serial.begin(CONF_LOG_UART_BAUD); */
     pk_log_init();
 
     PKLOGI("executing startup delay");
@@ -48,6 +50,12 @@ void setup() {
     PKLOGI("WiFi connection established");
     PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
 #endif // CONF_WIFI_ENABLED
+    
+#if CONF_SYSMON_ENABLED
+    sysmon_start();
+#endif
+
+    /* tcp_test(); */
 
 #if CONF_MDNS_ENABLED
     if (!pk_mdns_init())
@@ -67,7 +75,7 @@ void setup() {
 
     /* int64_t t1 = esp_timer_get_time(); */
 
-    /* xTaskCreate(&task, "task", 4096, 0, 1, NULL); */
+    xTaskCreate(&task, "task", 4096, 0, 1, NULL);
     /* xTaskCreate(&task, "task", 4096, (void *)1, 1, NULL); */
     /* xTaskCreate(&task, "task", 4096, (void *)2, 1, NULL); */
     /* xTaskCreate(&task, "task", 4096, (void *)3, 1, NULL); */
@@ -101,9 +109,6 @@ void setup() {
 
     /* log_async_init(); */
 
-#if CONF_SYSMON_ENABLED
-    sysmon_start();
-#endif
 
 #if CONF_TCP_OTA_ENABLED
     ota_server_start(CONF_TCP_OTA_PORT);

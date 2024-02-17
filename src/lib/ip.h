@@ -3,87 +3,98 @@
 #include "../conf.h"
 #include "macro.h"
 #include <stdbool.h>
-#include <sys/socket.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 #if CONF_IP_ENABLED
 
 EXTERNC_BEGIN
 
-#define PK_IP_ADDRSTRLEN INET_ADDRSTRLEN
+typedef int pk_sockhd_t;
 
-// Общий хендлер для tcp/udp клиента/сервера.
+typedef pk_sockhd_t pk_tcphd_t;
+typedef pk_tcphd_t pk_tcp_srvhd_t;
+typedef pk_tcphd_t pk_tcp_clhd_t;
+
+typedef pk_sockhd_t pk_udphd_t;
+typedef pk_udphd_t pk_udp_srvhd_t;
+typedef pk_udphd_t pk_udp_clhd_t;
+
+#define PK_SOCKERR (-1)
+// 16 for ip address, 1 for ':', 6 for 'port', 1 for zero
+#define PK_IP_ADDR_STR_LEN (16 + 1 + 6 + 1)
+
 typedef struct {
-    // Локальный адрес сервера (в клиенте не используется)
-    // Изменяется pk_tcp_server и pk_udp_server
-    struct sockaddr_in local;
-    // Удаленный адрес (сервера для клиента и наоборот)
-    // В udp/tcp клиенте его нужно выставить через pk_set_remote или pk_set_remote_by_hostname
-    // В udp сервере изменяется pk_udp_recv и pk_udp_recvn
-    // В tcp сервере изменяется pk_tcp_accept
-    struct sockaddr_in remote;
-    // Используется только tcp сервером
-    int ssfd;
-    // Используется udp сервером и udp/tcp клиентом
-    int csfd;
-} pk_ip_hnd_t;
+    uint32_t addr;
+    uint16_t port;
+} pk_ip_addr;
 
-// Записывает ip адрес remote в виде строки в str
-bool pk_ip_remote_addr2str(const pk_ip_hnd_t *hnd, char str[PK_IP_ADDRSTRLEN]);
+void pk_ip_addr2str(pk_ip_addr addr, char str[PK_IP_ADDR_STR_LEN]);
 
-// Создаёт tcp сокет, биндится, включает прослушивание
-// hnd - указатель на хендлер, который будет использоваться следующими функциями
-// backlog - количество подключений, которые будут ождать в очереди
-// port - в машинном порядке
-bool pk_tcp_server(pk_ip_hnd_t *hnd, uint16_t port, int backlog);
-// Создаёт udp сокет, биндится
-// hnd - указатель на хендлер, который будет использоваться следующими функциями
-// backlog - количество подключений, которые будут ождать в очереди
-// port - в машинном порядке
-bool pk_udp_server(pk_ip_hnd_t *hnd, uint16_t port, int backlog);
+// Создаёт tcp сокет сервера, биндится, включает прослушивание.
+// shd - указатель на хендлер сервера.
+// port - в машинном порядке.
+// backlog - количество подключений, которые будут ождать в очереди.
+// Возвращает хендлер или, в случае неудачи, PK_SOCKERR.
+pk_tcp_clhd_t pk_tcp_srv(uint16_t port, int backlog);
+// Создаёт udp сокет сервера, биндится.
+// shd - указатель на хендлер сервера.
+// port - в машинном порядке.
+// Возвращает хендлер или, в случае неудачи, PK_SOCKERR.
+pk_udphd_t pk_udp_srv(uint16_t port);
 
-// Создаёт tcp сокет
-bool pk_tcp_client(pk_ip_hnd_t *hnd);
-// Создаёт udp сокет
-bool pk_udp_client(pk_ip_hnd_t *hnd);
+// Создаёт tcp сокет клиента.
+// Возвращает хендлер или, в случае неудачи, PK_SOCKERR.
+pk_tcp_clhd_t pk_tcp_cl();
+// Создаёт udp сокет клиента
+// Возвращает хендлер или, в случае неудачи, PK_SOCKERR.
+pk_udp_clhd_t pk_udp_cl();
 
-// Устанавливает адрес и порт
-// addr, port - в машинном порядке
-void pk_ip_set_remote(pk_ip_hnd_t *hnd, uint32_t addr, uint16_t port);
-// Устанавливает адрес по имени хоста и порт
-// port - в машинном порядке
-bool pk_ip_set_remote_by_hostname(pk_ip_hnd_t *hnd, const char *hostname, uint16_t port);
+// Подключает клиент chd к серверу с адресом srv_adr.
+// Возвращает false только при ошибке.
+bool pk_tcp_connect(pk_tcp_clhd_t chd, pk_ip_addr srv_addr);
 
-// Блокирует задачу до принятия запроса, адрес отправившего запрос записывается в remote.
-bool pk_tcp_accept(pk_ip_hnd_t *hnd);
+// Блокирует задачу до принятия запроса.
+// В out_cl_addr записывается адрес клиента (если не NULL)
+pk_tcp_clhd_t pk_tcp_accept(pk_tcp_srvhd_t shd, pk_ip_addr *out_cl_addr);
 
-// Отправляет в tcp сокет buf размером n на адрес hnd->remote
+// Отправляет через tcp сокет клиента буфер buf размером n
+// Возвращает количество записанных байтов или -1 в случае ошибки.
+ssize_t pk_tcp_send(pk_tcp_clhd_t chd, const void *buf, size_t n);
+// Отправляет по адресу addr через udp сокет буфер buf размером n
+// Возвращает количество записанных байтов или -1 в случае ошибки.
+ssize_t pk_udp_send(pk_udphd_t hd, pk_ip_addr addr, const void *buf, size_t n);
+
+// Отправляет через tcp сокет буфер buf размером n
 // Отправка меньше n байтов будет считаться за ошибку
-bool pk_tcp_send(const pk_ip_hnd_t *hnd, const void *buf, size_t n);
-// Отправляет в udp сокет buf размером n на адрес hnd->remote
+bool pk_tcp_sendn(pk_tcp_clhd_t chd, const void *buf, size_t n);
+// Отправляет по адресу addr через udp сокет буфер buf размером n
 // Отправка меньше n байтов будет считаться за ошибку
-bool pk_udp_send(pk_ip_hnd_t *hnd, const void *buf, size_t n);
+bool pk_udp_sendn(pk_udphd_t hd, pk_ip_addr addr, const void *buf, size_t n);
 
 // Блокируется до получения какого-то количества байт (не более max_n) из tcp сокета.
 // Полученные байты записываются в buf.
-// В отличие от других функций ip.h возвращает количество считаных байтов или -1 в случае ошибки.
-size_t pk_tcp_recv(const pk_ip_hnd_t *hnd, void *buf, size_t max_n);
+// Возвращает количество считаных байтов или -1 в случае ошибки.
+ssize_t pk_tcp_recv(pk_tcp_clhd_t chd, void *buf, size_t max_n);
 // Блокируется до получения какого-то количества байт (не более max_n) из udp сокета.
-// В отличие от других функций ip.h возвращает количество считаных байтов или -1 в случае ошибки.
-size_t pk_udp_recv(pk_ip_hnd_t *hnd, void *buf, size_t max_n);
+// Адрес отправителя записывается в addr (если не NULL)
+// Полученные байты записываются в buf.
+// Возвращает количество считаных байтов или -1 в случае ошибки.
+ssize_t pk_udp_recv(pk_udphd_t hd, pk_ip_addr addr, void *buf, size_t max_n);
 
 // Блокируется до получения ровно n байтов из tcp сокета.
 // Полученные байты записываются в buf.
 // Получение меньше n байтов считается за ошибку.
-bool pk_tcp_recvn(const pk_ip_hnd_t *hnd, void *buf, size_t n);
+bool pk_tcp_recvn(pk_tcp_clhd_t chd, void *buf, size_t n);
 // Блокируется до получения ровно n байтов из udp сокета.
+// Адрес отправителя записывается в addr (если не NULL)
 // Полученные байты записываются в buf.
 // Получение меньше n байтов считается за ошибку.
-bool pk_udp_recvn(pk_ip_hnd_t *hnd, void *buf, size_t n);
+bool pk_udp_recvn(pk_udphd_t hd, pk_ip_addr addr, void *buf, size_t n);
 
-bool pk_ip_close_client(pk_ip_hnd_t *hnd);
-#define pk_udp_close_server(hnd) pk_ip_close_client(hnd)
-
-bool pk_tcp_close_server(pk_ip_hnd_t *hnd);
+// Закрывает tcp/udp сокет.
+bool pk_sock_close(pk_sockhd_t hd);
 
 EXTERNC_END
 
