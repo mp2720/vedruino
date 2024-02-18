@@ -6,7 +6,7 @@ import sys
 
 from typing import NoReturn
 
-CONF_PATH = "./config.ini"
+DEFAULT_CONF_PATH = "./config_default.ini"
 
 
 class Colors:
@@ -21,11 +21,11 @@ def error(msg: str) -> NoReturn:
     exit(1)
 
 
-conf = configparser.ConfigParser()
-if not conf.read(CONF_PATH):
-    error(f"error opening {CONF_PATH}")
-
 ap = argparse.ArgumentParser(description='Config tool')
+ap.add_argument(
+    'path',
+    help="path to config file"
+)
 ap.add_argument(
         '-c',
         '--gen-header',
@@ -37,19 +37,23 @@ ap.add_argument(
         '--get-value',
         dest='config_key',
         action='store',
-        help='get value from config.ini'
+        help='get value from config'
 )
 args = ap.parse_args()
 
 if bool(args.config_key) == args.gen_header:
     error('provide exactly one flag (run with -h for help)')
 
+conf = configparser.ConfigParser()
+if not conf.read([DEFAULT_CONF_PATH, args.path]):
+    error(f"error opening {DEFAULT_CONF_PATH}")
+
 
 def get_param_or_fail(section: str, key: str) -> str:
     try:
         return conf[section][key]
     except KeyError:
-        error(f"[{section}]:{key} not found in {CONF_PATH}")
+        error(f"[{section}]:{key} not found")
 
 
 if args.config_key:
