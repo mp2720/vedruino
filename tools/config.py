@@ -134,6 +134,7 @@ def add_module(section: str, key_types: dict[str, str]):
 if args.gen_header:
     conf_h = "// Файл сгенерирован автоматически с помощью tools/conf.py\n"
     conf_h += "// Изменять нужно ./config.ini\n"
+    conf_h += "#pragma once\n"
     
     try:
         add_section_comm("board")
