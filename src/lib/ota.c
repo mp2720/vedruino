@@ -57,7 +57,7 @@ typedef enum {
     PART_STATUS_ERASED,
     // Чисти-чисти раздел.
     PART_STATUS_NEED_ERASE
-} upd_part_status_t;
+} pkUpdPartitionStatus;
 
 static int ssfd, csfd;
 static const esp_partition_t *upd_part;
@@ -66,7 +66,7 @@ static bool part_clean;
 static void server_task(void *);
 static bool init_socket();
 static inline bool prepare_part();
-static inline upd_part_status_t check_upd_part();
+static inline pkUpdPartitionStatus check_upd_part();
 static inline bool read_header();
 static inline bool update();
 #if CONF_TCP_OTA_VERIFY_MD5
@@ -77,7 +77,7 @@ static char nibble_str(uint8_t n);
 bool ota_server_start() {
     if (xTaskCreate(&server_task, "ota_tcp_server", SERVER_TASK_STACK_SIZE, NULL,
                     SERVER_TASK_LOW_PRIORITY, NULL) != pdPASS) {
-        NLOGE("xTaskCreate failed");
+        PKLOGE("xTaskCreate failed");
         return false;
     }
     return true;
@@ -88,7 +88,7 @@ static void server_task(UNUSED void *p) {
         goto fatal_err;
 
     if (!prepare_part()) {
-        NLOGE("part is not prepared, cannot continue");
+        PKLOGE("part is not prepared, cannot continue");
         goto fatal_err;
     }
 
@@ -98,49 +98,49 @@ static void server_task(UNUSED void *p) {
     socklen_t caddr_len = sizeof ca;
     char ca_str[INET_ADDRSTRLEN];
     while (1) {
-        NLOGI("listening on port %d", CONF_OTA_PORT);
+        PKLOGI("listening on port %d", CONF_OTA_PORT);
 
         csfd = accept(ssfd, (struct sockaddr *)&ca, &caddr_len);
         int64_t start_time = esp_timer_get_time();
         if (csfd < 0) {
-            NLOGE("accept() %s", strerror(errno));
+            PKLOGE("accept() %s", strerror(errno));
             goto err_cont;
         }
 
         vTaskPrioritySet(NULL, SERVER_TASK_HIGH_PRIORITY);
-        sysmon_pause();
+        /* sysmon_pause(); */
 
         if (inet_ntop(AF_INET, &(ca.sin_addr), ca_str, INET_ADDRSTRLEN) == NULL) {
-            NLOGE("inet_ntop() %s", strerror(errno));
+            PKLOGE("inet_ntop() %s", strerror(errno));
             goto err_cont;
         }
 
-        NLOGI("update request from %s", ca_str);
+        PKLOGI("update request from %s", ca_str);
 
         if (!read_header()) {
-            NLOGW("request has invalid header");
+            PKLOGW("request has invalid header");
             goto err_cont;
         }
 
 #if CONF_TCP_OTA_VERIFY_MD5
-        NLOGI("size of new firmware: %zu, md5: %s", header.size, header.md5str);
+        PKLOGI("size of new firmware: %zu, md5: %s", header.size, header.md5str);
 #else
-        NLOGI("size of new firmware: %zu, md5 is ignored", header.size);
+        PKLOGI("size of new firmware: %zu, md5 is ignored", header.size);
 #endif // CONF_TCP_OTA_VERIFY_MD5
 
-        NLOGI("retreiving firmware...");
+        PKLOGI("retreiving firmware...");
         if (!update()) {
-            NLOGE("failed to update, staying on the old version");
+            PKLOGE("failed to update, staying on the old version");
             goto err_cont;
         }
 
         float secs = (float)(esp_timer_get_time() - start_time) / 1e6f;
-        NLOGI("updated in %f secs", secs);
+        PKLOGI("updated in %f secs", secs);
 
         write(csfd, OK_TCP_RESPONSE, sizeof(OK_TCP_RESPONSE) - 1);
         close(csfd);
 
-        NLOGI("new firmware is loaded, rebooting...");
+        PKLOGI("new firmware is loaded, rebooting...");
 
         // Время на запись ответа в сокет.
         vTaskDelay(80 / portTICK_RATE_MS);
@@ -152,23 +152,23 @@ static void server_task(UNUSED void *p) {
         close(csfd);
 
         if (!part_clean) {
-            NLOGV("part is not clean, erasing...");
+            PKLOGV("part is not clean, erasing...");
 
             esp_err_t err = esp_partition_erase_range(upd_part, 0, upd_part->size);
             if (err != ESP_OK) {
-                NLOGE("esp_partition_erase_range %s", esp_err_to_name(err));
+                PKLOGE("esp_partition_erase_range %s", esp_err_to_name(err));
                 goto fatal_err;
             }
         }
 
-        sysmon_resume();
+        /* sysmon_resume(); */
         vTaskPrioritySet(NULL, SERVER_TASK_LOW_PRIORITY);
 
         part_clean = true;
     }
 
 fatal_err:
-    NLOGE("fatal error, shutting down the server");
+    PKLOGE("fatal error, shutting down the server");
     close(csfd);
     vTaskDelete(NULL);
 }
@@ -176,7 +176,7 @@ fatal_err:
 static inline bool init_socket() {
     ssfd = socket(AF_INET, SOCK_STREAM, 0);
     if (ssfd < 0) {
-        NLOGE("socket() %s", strerror(errno));
+        PKLOGE("socket() %s", strerror(errno));
         return false;
     }
 
@@ -186,12 +186,12 @@ static inline bool init_socket() {
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(ssfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-        NLOGE("bind() %s", strerror(errno));
+        PKLOGE("bind() %s", strerror(errno));
         goto err;
     }
 
     if (listen(ssfd, 1) < 0) {
-        NLOGE("listen() %s", strerror(errno));
+        PKLOGE("listen() %s", strerror(errno));
         goto err;
     }
 
@@ -204,37 +204,37 @@ err:
 
 static inline bool prepare_part() {
     if ((upd_part = esp_ota_get_next_update_partition(NULL)) == NULL) {
-        NLOGE("no ota part found");
+        PKLOGE("no ota part found");
         return false;
     }
 
-    NLOGV("%s is next update part", upd_part->label);
+    PKLOGV("%s is next update part", upd_part->label);
 
-    upd_part_status_t status = check_upd_part();
+    pkUpdPartitionStatus status = check_upd_part();
     if (status == PART_STATUS_ERROR)
         return false;
 
     if (status == PART_STATUS_NEED_ERASE) {
         esp_err_t err = esp_partition_erase_range(upd_part, 0, upd_part->size);
         if (err != ESP_OK) {
-            NLOGE("esp_partition_erase_range %s", esp_err_to_name(err));
+            PKLOGE("esp_partition_erase_range %s", esp_err_to_name(err));
             return false;
         }
 
-        NLOGV("part %s erased", upd_part->label);
+        PKLOGV("part %s erased", upd_part->label);
     } else {
-        NLOGV("part %s is clean", upd_part->label);
+        PKLOGV("part %s is clean", upd_part->label);
     }
 
     return true;
 }
 
-static inline upd_part_status_t check_upd_part() {
+static inline pkUpdPartitionStatus check_upd_part() {
     const size_t BLK_SIZE = 4096;
 
     uint8_t *buf = malloc(BLK_SIZE);
     if (buf == NULL) {
-        NLOGE("malloc failed");
+        PKLOGE("malloc failed");
         return PART_STATUS_ERROR;
     }
 
@@ -242,7 +242,7 @@ static inline upd_part_status_t check_upd_part() {
     for (size_t offs = 0; offs < upd_part->size; offs += BLK_SIZE) {
         esp_err_t err = esp_partition_read(upd_part, offs, buf, BLK_SIZE);
         if (err != ESP_OK) {
-            NLOGE("esp_partition_read %s", esp_err_to_name(err));
+            PKLOGE("esp_partition_read %s", esp_err_to_name(err));
             free(buf);
             return PART_STATUS_ERROR;
         }
@@ -281,7 +281,7 @@ static inline bool update() {
     bool success = false;
     esp_err_t err;
 
-    NLOGI("writing firmware to %s", upd_part->label);
+    PKLOGI("writing firmware to %s", upd_part->label);
 
     int64_t start_time = esp_timer_get_time();
 
@@ -295,7 +295,7 @@ static inline bool update() {
 
     uint8_t *buf = malloc(FIRMWARE_BUF_SIZE);
     if (buf == NULL) {
-        NLOGE("malloc failed");
+        PKLOGE("malloc failed");
         return false;
     }
 
@@ -303,12 +303,12 @@ static inline bool update() {
     while (loaded < header.size) {
         int n = read(csfd, buf, FIRMWARE_BUF_SIZE);
         if (n < 0) {
-            NLOGE("read() failed: %s", strerror(errno));
+            PKLOGE("read() failed: %s", strerror(errno));
             goto error;
         }
 
         if (n == 0) {
-            NLOGE("expected %zu bytes of firmware, got %zu", header.size, loaded);
+            PKLOGE("expected %zu bytes of firmware, got %zu", header.size, loaded);
             goto error;
         }
 
@@ -320,7 +320,7 @@ static inline bool update() {
 
         err = esp_partition_write(upd_part, loaded, buf, n);
         if (err != ESP_OK) {
-            NLOGE("esp_partition_write() %s", esp_err_to_name(err));
+            PKLOGE("esp_partition_write() %s", esp_err_to_name(err));
             goto error;
         }
 
@@ -339,22 +339,22 @@ static inline bool update() {
     else
         avg_speed = (float)header.size / secs;
 
-    NLOGI("%zu bytes in %f secs, avg speed %f b/s", header.size, secs, avg_speed);
+    PKLOGI("%zu bytes in %f secs, avg speed %f b/s", header.size, secs, avg_speed);
 
 #if CONF_TCP_OTA_VERIFY_MD5
     if (memcmp(header.md5, computed_md5, MD5_SIZE) != 0) {
         char computed_md5str[MD5STR_SIZE];
         md5str(computed_md5, computed_md5str);
-        NLOGE("md5 differs %s (given) != %s (computed)", header.md5str, computed_md5str);
+        PKLOGE("md5 differs %s (given) != %s (computed)", header.md5str, computed_md5str);
         goto error;
     }
 #endif // CONF_TCP_OTA_VERIFY_MD5
 
     err = esp_ota_set_boot_partition(upd_part);
     if (err != ESP_OK) {
-        NLOGE("esp_ota_set_boot_partition() failed: %s", esp_err_to_name(err));
+        PKLOGE("esp_ota_set_boot_partition() failed: %s", esp_err_to_name(err));
         if (err == ESP_ERR_OTA_VALIDATE_FAILED)
-            NLOGE("loaded firmware is corrupted, try send file again");
+            PKLOGE("loaded firmware is corrupted, try send file again");
 
         goto error;
     }

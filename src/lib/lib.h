@@ -39,14 +39,13 @@ void sysmon_resume();
 
 // === misc ===
 
-/* null-terminated, from esp_ota_ops.h */
-#define MISC_PART_LABEL_SIZE 17
-void misc_running_partition(char out_label[MISC_PART_LABEL_SIZE]);
+const char *pk_running_part_label();
+const char *pk_reset_reason_str();
 
 // Размер суффикса к количеству информации в байтах (null-terminated).
 #define MISC_BISUFFIX_SIZE 3
 // Перевести размер информации в вид <множитель><суффикс>.
 // Используются суффиксы для степени 2 (Ki, Mi, ..., Yi).
-void misc_hum_size(size_t size, float *out_f, char out_suf[MISC_BISUFFIX_SIZE]);
+void pk_hum_size(size_t size, float *out_f, char out_suf[MISC_BISUFFIX_SIZE]);
 
 EXTERNC_END

@@ -13,11 +13,11 @@ typedef enum {
     SEND_RETRY,
     SEND_ERR,
     SEND_OK
-} send_status_t;
+} pkSendStatus_t;
 
 static const char *TAG = "ip";
 
-static struct sockaddr_in get_sockaddr(pk_ip_addr addr) {
+static struct sockaddr_in get_sockaddr(pkIpAddr_t addr) {
     struct sockaddr_in saddr;
     memset(&saddr, 0, sizeof saddr);
     saddr.sin_family = AF_INET;
@@ -26,7 +26,7 @@ static struct sockaddr_in get_sockaddr(pk_ip_addr addr) {
     return saddr;
 }
 
-void pk_ip_addr2str(pk_ip_addr addr, char str[PK_IP_ADDR_STR_LEN]) {
+void pk_ip_addr2str(pkIpAddr_t addr, char str[PK_IP_ADDR_STR_LEN]) {
     // clang-format off
     uint8_t addr_bytes[] = {
         (addr.addr & 0xff000000) >> 24,
@@ -40,8 +40,8 @@ void pk_ip_addr2str(pk_ip_addr addr, char str[PK_IP_ADDR_STR_LEN]) {
              addr_bytes[3], addr.port);
 }
 
-static pk_sockhd_t create_srv_sock(uint16_t port, sa_family_t family) {
-    pk_sockhd_t srvhd = socket(AF_INET, family, 0);
+static pkSocketHandle_t create_srv_sock(uint16_t port, sa_family_t family) {
+    pkSocketHandle_t srvhd = socket(AF_INET, family, 0);
     if (srvhd < 0) {
         PKLOGE("socket() %s", strerror(errno));
         return PK_SOCKERR;
@@ -61,8 +61,8 @@ static pk_sockhd_t create_srv_sock(uint16_t port, sa_family_t family) {
     return srvhd;
 }
 
-pk_tcp_srvhd_t pk_tcp_srv(uint16_t port, int backlog) {
-    pk_sockhd_t srvhd = create_srv_sock(port, SOCK_STREAM);
+pkTcpServer_t pk_tcp_server(uint16_t port, int backlog) {
+    pkSocketHandle_t srvhd = create_srv_sock(port, SOCK_STREAM);
     if (srvhd == PK_SOCKERR)
         return PK_SOCKERR;
 
@@ -74,12 +74,12 @@ pk_tcp_srvhd_t pk_tcp_srv(uint16_t port, int backlog) {
     return srvhd;
 }
 
-pk_udphd_t pk_udp_srv(uint16_t port) {
+pkUdpHandle_t pk_udp_server(uint16_t port) {
     return create_srv_sock(port, SOCK_DGRAM);
 }
 
-static pk_sockhd_t handle_client(int type) {
-    pk_sockhd_t clhd = socket(AF_INET, type, 0);
+static pkSocketHandle_t handle_client(int type) {
+    pkSocketHandle_t clhd = socket(AF_INET, type, 0);
     if (clhd < 0) {
         PKLOGE("socket() %s", strerror(errno));
         return PK_SOCKERR;
@@ -87,15 +87,15 @@ static pk_sockhd_t handle_client(int type) {
     return clhd;
 }
 
-pk_tcp_clhd_t pk_tcp_cl() {
+pkTcpClient_t pk_tcp_client() {
     return handle_client(SOCK_STREAM);
 }
 
-pk_udp_clhd_t pk_udp_cl() {
+pkUdpHandle_t pk_udp_client() {
     return handle_client(SOCK_DGRAM);
 }
 
-bool pk_tcp_connect(pk_tcp_clhd_t chd, pk_ip_addr srv_addr) {
+bool pk_tcp_connect(pkTcpClient_t chd, pkIpAddr_t srv_addr) {
     struct sockaddr_in saddr = get_sockaddr(srv_addr);
     if (connect(chd, (struct sockaddr *)&saddr, sizeof saddr) < 0) {
         PKLOGE("connect() %s", strerror(errno));
@@ -104,10 +104,10 @@ bool pk_tcp_connect(pk_tcp_clhd_t chd, pk_ip_addr srv_addr) {
     return true;
 }
 
-pk_tcp_clhd_t pk_tcp_accept(pk_tcp_srvhd_t shd, pk_ip_addr *out_cl_addr) {
+pkTcpClient_t pk_tcp_accept(pkTcpServer_t shd, pkIpAddr_t *out_cl_addr) {
     struct sockaddr_in saddr;
     socklen_t saddr_len = sizeof saddr;
-    pk_sockhd_t chd = accept(shd, (struct sockaddr *)&saddr, &saddr_len);
+    pkSocketHandle_t chd = accept(shd, (struct sockaddr *)&saddr, &saddr_len);
     if (chd < 0) {
         PKLOGE("accept() %s", strerror(errno));
         return PK_SOCKERR;
@@ -121,7 +121,7 @@ pk_tcp_clhd_t pk_tcp_accept(pk_tcp_srvhd_t shd, pk_ip_addr *out_cl_addr) {
     return chd;
 }
 
-static send_status_t handle_send(int *retries, ssize_t written) {
+static pkSendStatus_t handle_send(int *retries, ssize_t written) {
     if (written < 0) {
         if (errno == ENOMEM && (*retries)++ < MAX_RETRIES_ON_ENOMEM) {
             PKLOGW("send failed on ENOMEM, retrying...");
@@ -134,11 +134,11 @@ static send_status_t handle_send(int *retries, ssize_t written) {
     return SEND_OK;
 }
 
-ssize_t pk_tcp_send(pk_tcp_clhd_t chd, const void *buf, size_t n) {
+ssize_t pk_tcp_send(pkTcpClient_t chd, const void *buf, size_t n) {
     int retries = 0;
     while (1) {
         ssize_t written = write(chd, buf, n);
-        send_status_t st = handle_send(&retries, written);
+        pkSendStatus_t st = handle_send(&retries, written);
         if (st == SEND_RETRY)
             continue;
         else
@@ -146,12 +146,12 @@ ssize_t pk_tcp_send(pk_tcp_clhd_t chd, const void *buf, size_t n) {
     }
 }
 
-ssize_t pk_udp_send(pk_udphd_t hd, pk_ip_addr addr, const void *buf, size_t n) {
+ssize_t pk_udp_send(pkUdpHandle_t hd, pkIpAddr_t addr, const void *buf, size_t n) {
     struct sockaddr_in saddr = get_sockaddr(addr);
     int retries = 0;
     while (1) {
         ssize_t written = sendto(hd, buf, n, 0, (struct sockaddr *)&saddr, sizeof saddr);
-        send_status_t st = handle_send(&retries, written);
+        pkSendStatus_t st = handle_send(&retries, written);
         if (st == SEND_RETRY)
             continue;
         else
@@ -167,21 +167,21 @@ static bool handle_n_func(const char *func_name, ssize_t processed, size_t exp) 
     return true;
 }
 
-bool pk_tcp_sendn(pk_tcp_clhd_t chd, const void *buf, size_t n) {
+bool pk_tcp_sendn(pkTcpClient_t chd, const void *buf, size_t n) {
     ssize_t sent = pk_tcp_send(chd, buf, n);
     if (sent < 0)
         return false;
     return handle_n_func("pk_tcp_send", sent, n);
 }
 
-bool pk_udp_sendn(pk_udphd_t chd, pk_ip_addr addr, const void *buf, size_t n) {
+bool pk_udp_sendn(pkUdpHandle_t chd, pkIpAddr_t addr, const void *buf, size_t n) {
     ssize_t sent = pk_udp_send(chd, addr, buf, n);
     if (sent < 0)
         return false;
     return handle_n_func("pk_udp_send", sent, n);
 }
 
-ssize_t pk_tcp_recv(pk_tcp_clhd_t chd, void *buf, size_t max_n) {
+ssize_t pk_tcp_recv(pkTcpClient_t chd, void *buf, size_t max_n) {
     ssize_t rd = read(chd, buf, max_n);
     if (rd < 0) {
         PKLOGE("read() %s", strerror(errno));
@@ -190,7 +190,7 @@ ssize_t pk_tcp_recv(pk_tcp_clhd_t chd, void *buf, size_t max_n) {
     return rd;
 }
 
-ssize_t pk_udp_recv(pk_udphd_t hd, pk_ip_addr addr, void *buf, size_t max_n) {
+ssize_t pk_udp_recv(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t max_n) {
     struct sockaddr_in saddr = get_sockaddr(addr);
     socklen_t saddr_len = sizeof saddr;
     ssize_t rcv = recvfrom(hd, buf, max_n, 0, (struct sockaddr *)&saddr, &saddr_len);
@@ -201,21 +201,21 @@ ssize_t pk_udp_recv(pk_udphd_t hd, pk_ip_addr addr, void *buf, size_t max_n) {
     return rcv;
 }
 
-bool pk_tcp_recvn(pk_tcp_clhd_t chd, void *buf, size_t n) {
+bool pk_tcp_recvn(pkTcpClient_t chd, void *buf, size_t n) {
     ssize_t rcv = pk_tcp_recv(chd, buf, n);
     if (rcv < 0)
         return false;
     return handle_n_func("pk_tcp_recv", rcv, n);
 }
 
-bool pk_udp_recvn(pk_udphd_t hd, pk_ip_addr addr, void *buf, size_t n) {
+bool pk_udp_recvn(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t n) {
     ssize_t rcv = pk_udp_recv(hd, addr, buf, n);
     if (rcv < 0)
         return false;
     return handle_n_func("pk_udp_recv", rcv, n);
 }
 
-bool pk_sock_close(pk_sockhd_t hd) {
+bool pk_sock_close(pkSocketHandle_t hd) {
     int ret = close(hd);
     if (ret < 0) {
         PKLOGE("close() %s", strerror(errno));

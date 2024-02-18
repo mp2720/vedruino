@@ -11,10 +11,11 @@
 
 #define SHSTACK_SIZE 4096
 #define STDOUT_BUF_SIZE 256
-#define MAX_CLIENTS 4
+#define MAX_CLIENTS 2
 #define SERVER_TASK_STACK_SIZE 4096
 #define SERVER_TASK_PRIORITY 10
 #define SERVER_PORT 8419
+#define NOTIFY_PORT 8419
 
 static const char *TAG = "netlog";
 
@@ -22,7 +23,7 @@ static SemaphoreHandle_t clients_mutex, shstack_mutex;
 
 static int clients_num;
 static __NOINIT_ATTR struct {
-    pk_tcp_clhd_t hd;
+    pkTcpClient_t hd;
     char addr_str[PK_IP_ADDR_STR_LEN];
 } clients[MAX_CLIENTS];
 
@@ -33,7 +34,7 @@ static __NOINIT_ATTR char *shstack_write_buf;
 static __NOINIT_ATTR int shstack_write_n;
 
 static void server_task(void *p);
-static bool add_client(pk_tcp_clhd_t chd, const char cl_addr_str[PK_IP_ADDR_STR_LEN]);
+static bool add_client(pkTcpClient_t chd, const char cl_addr_str[PK_IP_ADDR_STR_LEN]);
 static void del_client(int i);
 static int stdout_write(void *cookie, const char *buf, int n);
 static void shstack_write(void);
@@ -64,8 +65,8 @@ bool pk_netlog_init() {
     stdout = netlogout;
     _GLOBAL_REENT->_stdout = netlogout;
 
-    if (xTaskCreate(&server_task, "pk_netlog_serv", SERVER_TASK_STACK_SIZE, NULL,
-                    SERVER_TASK_PRIORITY, NULL) != pdPASS) {
+    if (xTaskCreate(&server_task, "pk_netlog", SERVER_TASK_STACK_SIZE, NULL, SERVER_TASK_PRIORITY,
+                    NULL) != pdPASS) {
         PKLOGE("xTaskCreate() failed");
         goto err;
     }
@@ -86,34 +87,32 @@ err:
 }
 
 static void server_task(UNUSED void *p) {
-    pk_tcp_srvhd_t shd = pk_tcp_srv(SERVER_PORT, 2);
+    pkTcpServer_t shd = pk_tcp_server(SERVER_PORT, 2);
     if (shd == PK_SOCKERR) {
-        PKLOGE("netlogd server task failed on init");
+        PKLOGE("netlog server task failed on init");
         vTaskDelete(NULL);
     }
 
     PKLOGI("listening on port %d", SERVER_PORT);
 
     while (1) {
-        PKLOGI("%d connected clients:", clients_num);
-        for (int i = 0; i < clients_num; ++i)
-            PKLOGI("%s", clients[i].addr_str);
-
-        pk_ip_addr cl_addr;
-        pk_tcp_clhd_t chd = pk_tcp_accept(shd, &cl_addr);
+        pkIpAddr_t cl_addr;
+        pkTcpClient_t chd = pk_tcp_accept(shd, &cl_addr);
         if (chd == PK_SOCKERR)
             goto err_cont;
 
         char cl_addr_str[PK_IP_ADDR_STR_LEN];
         pk_ip_addr2str(cl_addr, cl_addr_str);
 
-        assert(xSemaphoreTake(clients_mutex, portMAX_DELAY));
         bool res = add_client(chd, cl_addr_str);
-        assert(xSemaphoreGive(clients_mutex));
         if (!res)
             goto err_cont;
 
         PKLOGI("added client %s", cl_addr_str);
+        PKLOGI("last reset reason: %s", pk_reset_reason_str());
+        PKLOGI("%d connected clients:", clients_num);
+        for (int i = 0; i < clients_num; ++i)
+            PKLOGI("%s", clients[i].addr_str);
         continue;
 
     err_cont:
@@ -122,7 +121,7 @@ static void server_task(UNUSED void *p) {
     }
 }
 
-static bool add_client(pk_tcp_clhd_t chd, const char cl_addr_str[PK_IP_ADDR_STR_LEN]) {
+static bool add_client(pkTcpClient_t chd, const char cl_addr_str[PK_IP_ADDR_STR_LEN]) {
     if (clients_num == MAX_CLIENTS) {
         const char msg[] = "reached max clients limit";
         PKLOGE("%s", msg);
@@ -130,8 +129,10 @@ static bool add_client(pk_tcp_clhd_t chd, const char cl_addr_str[PK_IP_ADDR_STR_
         return false;
     }
 
+    assert(xSemaphoreTake(clients_mutex, portMAX_DELAY));
     clients[clients_num].hd = chd;
     memcpy(clients[clients_num].addr_str, cl_addr_str, PK_IP_ADDR_STR_LEN);
+    assert(xSemaphoreGive(clients_mutex));
 
     ++clients_num;
 
@@ -139,34 +140,36 @@ static bool add_client(pk_tcp_clhd_t chd, const char cl_addr_str[PK_IP_ADDR_STR_
 }
 
 static int stdout_write(UNUSED void *cookie, UNUSED const char *buf, int n) {
+    stdout = pk_log_uartout;
+
     xSemaphoreTake(clients_mutex, portMAX_DELAY);
     shstack_write_n = n;
     shstack_write_buf = stdout_buf;
-
-    stdout = pk_log_uartout;
 
     esp_execute_shared_stack_function(shstack_mutex, shstack, SHSTACK_SIZE, &shstack_write);
     if (buf[n - 1] != '\n') {
         // Белые буквы на красном фоне
         char tear_msg[] = "\n\033[2;37;41mTEAR\033[2;39;49m\n";
-        shstack_write_n = sizeof(tear_msg) - 2;
         shstack_write_buf = tear_msg;
+        shstack_write_n = sizeof(tear_msg) - 2;
         esp_execute_shared_stack_function(shstack_mutex, shstack, SHSTACK_SIZE, &shstack_write);
     }
 
-    stdout = netlogout;
-
     xSemaphoreGive(clients_mutex);
+    stdout = netlogout;
     return n;
 }
 
 static void shstack_write(void) {
     for (int i = 0; i < clients_num; ++i)
-        if (pk_tcp_send(clients[i].hd, shstack_write_buf, shstack_write_n) < 0)
+        if (pk_tcp_send(clients[i].hd, shstack_write_buf, shstack_write_n) < 0) {
+            PKLOGE_UART("client %s will be disconnected due to error while sending message",
+                        clients[i].addr_str);
             del_client(i);
+        }
 
-    /* if (clients_num == 0) */
-    write(0, shstack_write_buf, shstack_write_n);
+    if (clients_num == 0)
+        write(0, shstack_write_buf, shstack_write_n);
 }
 
 static void del_client(int i) {
