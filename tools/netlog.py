@@ -4,6 +4,7 @@ import time
 import socket
 import argparse
 import typing
+import signal
 import sys
 
 NETLOG_PORT = 8419
@@ -71,6 +72,16 @@ def reconnect(e: Exception, s: socket.socket) -> socket.socket:
 def fatal(e: Exception) -> typing.NoReturn:
     log(f"fatal exception {e}")
     exit(1)
+
+
+def sig_handler(signame, frame):
+    if signame in [signal.SIGTERM, signal.SIGINT]:
+        sys.stdout.buffer.write(b'\n')
+        exit(0)
+
+
+signal.signal(signal.SIGINT, sig_handler)
+signal.signal(signal.SIGTERM, sig_handler)
 
 
 log_sock = connect()
