@@ -3,7 +3,9 @@
  * Поэтому я его опять автоматизировал.
  */
 
-#include "lib.h"
+#include "inc.h"
+
+#if CONF_OTA_ENABLED
 
 #include <errno.h>
 #include <esp_ota_ops.h>
@@ -387,3 +389,5 @@ static inline char nibble_str(uint8_t n) {
         return 'A' + n - 10;
 }
 #endif // CONF_TCP_OTA_VERIFY_MD5
+
+#endif // CONF_OTA_ENABLED

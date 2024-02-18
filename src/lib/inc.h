@@ -4,31 +4,47 @@
 #include "macro.h"
 #include <stdbool.h>
 #include <stddef.h>
-
-#include "ip.h"
-#include "log.h"
-#include "mqtt.h"
-
-#include <esp_err.h>
+#include <stdio.h>
 
 EXTERNC_BEGIN
 
+// === log ===
+
+extern FILE *pk_log_uartout;
+void pk_log_init();
+
+#ifdef PK_LIB_INCLUDE_FROM_APP
+#define PKLOG_LEVEL CONF_LOG_APP_LEVEL
+#else
+#define PKLOG_LEVEL CONF_LOG_LIB_LEVEL
+#endif // PK_LIB_INCLUDE_FROM_APP
+       
+#include "log_defs.h"
+
+// === ip ===
+
+#include "ip.h"
+
 // === mdns ===
+
 #if CONF_MDNS_ENABLED
 bool pk_mdns_init();
 #endif // CONF_MDNS_ENABLED
 
 // === netlog ===
+
 #if CONF_NETLOG_ENABLED
 bool pk_netlog_init(void);
 #endif // CONF_NETLOG_ENABLED
 
 // === ota ===
+
 #if CONF_OTA_ENABLED
 bool ota_server_start();
 #endif // CONF_OTA_ENABLED
 
 // === sysmon ===
+
 #if CONF_SYSMON_ENABLED
 int sysmon_start();
 void sysmon_dump_heap_stat();
@@ -36,6 +52,10 @@ void sysmon_dump_tasks();
 void sysmon_pause();
 void sysmon_resume();
 #endif // CONF_SYSMON_ENABLED
+
+// === mqtt ====
+
+#include "mqtt.h"
 
 // === misc ===
 

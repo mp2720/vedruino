@@ -15,8 +15,6 @@
 #error ESP_IDF_VERSION < 3.0.0 убери это говно
 #endif
 
-EXTERNC_BEGIN
-
 // handle для использования других инструментов
 extern esp_mqtt_client_handle_t mqtt_client;
 
@@ -59,5 +57,3 @@ int mqtt_resume();
 
 // Возвращает 1 если брокер подключён, иначе 0
 bool mqtt_is_connected();
-
-EXTERNC_END

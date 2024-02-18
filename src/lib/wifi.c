@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "inc.h"
 
 #include <stdbool.h>
 #include <esp_wifi.h>

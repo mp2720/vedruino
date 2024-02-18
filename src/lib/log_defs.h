@@ -1,24 +1,16 @@
-#pragma once
+// Макрос уровня логов PK_LOG_LEVEL должен быть задан перед включением этого файла через #include.
+// Включать этот файл нужно только в lib/inc.h, либо если надо задать локальный уровень логов.
 
+// Конфиг включен, но здесь из него не берутся параметры уровня логов.
 #include "../conf.h"
-#include "macro.h"
+// Для вывода времени (только если log:print_time=true)
 #include <esp_timer.h>
-#include <stdbool.h>
-#include <stdio.h>
 
-EXTERNC_BEGIN
-
-extern FILE *pk_log_uartout;
-
-bool pk_log_init();
-
-EXTERNC_END
-
-#define PKLOG_STRINGIZE(x) _PKLOG_STRINGIZE2(x)
-#define _PKLOG_STRINGIZE2(x) #x
+#ifndef _PK_LOG_H
+#define _PK_LOG_H
 
 #if CONF_LOG_PRINT_FILE_LINE
-#define _PKLOG_LINE ":" PKLOG_STRINGIZE(__LINE__)
+#define _PKLOG_LINE ":" PK_STRINGIZE(__LINE__)
 #else
 #define _PKLOG_LINE ""
 #endif // CONF_PKLOG_PRINT_FILE_LINE
@@ -52,11 +44,11 @@ EXTERNC_END
 // clang-format off
 #if CONF_LOG_PRINT_TIME
 #define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
-    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] (%d) " _PKLOG_CLR_##x fmt    \
+    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] (%d) " _PKLOG_CLR_##x fmt\
     _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
 #else
 #define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
-    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt         \
+    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt     \
     _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
 #endif // CONF_LOG_PRINT_TIME
 // clang-format on
@@ -65,51 +57,82 @@ EXTERNC_END
 #define _PKLOGX_UART(x, tag, fmt, ...)                                                             \
     fprintf(pk_log_uartout, _PKLOGX_ARGS(x, tag, fmt, ##__VA_ARGS__))
 
-#if CONF_LOG_LEVEL >= 1
+#endif // !_PK_LOG_H
+
+// С этого момента include-guard не действует, перед объявлением любого макроса нужно написать undef
+
+#undef PKLOGE_TAG
+#undef PKLOGE_UART_TAG
+
+#if PKLOG_LEVEL >= 1
 #define PKLOGE_TAG(tag, fmt, ...) _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__)
 #define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__)
 #else
 #define PKLOGE_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOG_NOP
-#endif // CONF_PKLOG_LEVEL >= 1
+#endif // CONFPKLOG_LEVEL >= 1
 
-#if CONF_LOG_LEVEL >= 2
+#undef PKLOGW_TAG
+#undef PKLOGW_UART_TAG
+
+#if PKLOG_LEVEL >= 2
 #define PKLOGW_TAG(tag, fmt, ...) _PKLOGX_STDOUT(W, tag, fmt, ##__VA_ARGS__)
 #define PKLOGW_UART_TAG(tag, fmt, ...) _PKLOGX_UART(W, tag, fmt, ##__VA_ARGS__)
 #else
 #define PKLOGW_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGW_UART_TAG(tag, fmt, ...) _PKLOG_NOP
-#endif // CONF_PKLOG_LEVEL >= 2
+#endif // CONFPKLOG_LEVEL >= 2
 
-#if CONF_LOG_LEVEL >= 3
+#undef PKLOGI_TAG
+#undef PKLOGI_UART_TAG
+
+#if PKLOG_LEVEL >= 3
 #define PKLOGI_TAG(tag, fmt, ...) _PKLOGX_STDOUT(I, tag, fmt, ##__VA_ARGS__)
 #define PKLOGI_UART_TAG(tag, fmt, ...) _PKLOGX_UART(I, tag, fmt, ##__VA_ARGS__)
 #else
 #define PKLOGI_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGI_UART_TAG(tag, fmt, ...) _PKLOG_NOP
-#endif // CONF_PKLOG_LEVEL >= 3
+#endif // CONFPKLOG_LEVEL >= 3
 
-#if CONF_LOG_LEVEL >= 4
+#undef PKLOGD_TAG
+#undef PKLOGD_UART_TAG
+
+#if PKLOG_LEVEL >= 4
 #define PKLOGD_TAG(tag, fmt, ...) _PKLOGX_STDOUT(D, tag, fmt, ##__VA_ARGS__)
 #define PKLOGD_UART_TAG(tag, fmt, ...) _PKLOGX_UART(D, tag, fmt, ##__VA_ARGS__)
 #else
 #define PKLOGD_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGD_UART_TAG(tag, fmt, ...) _PKLOG_NOP
-#endif // CONF_PKLOG_LEVEL >= 4
+#endif // CONFPKLOG_LEVEL >= 4
 
-#if CONF_LOG_LEVEL >= 5
+#undef PKLOGV_TAG
+#undef PKLOGV_UART_TAG
+
+#if PKLOG_LEVEL >= 5
 #define PKLOGV_TAG(tag, fmt, ...) _PKLOGX_STDOUT(V, tag, fmt, ##__VA_ARGS__)
 #define PKLOGV_UART_TAG(tag, fmt, ...) _PKLOGX_UART(V, tag, fmt, ##__VA_ARGS__)
 #else
 #define PKLOGV_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGV_UART_TAG(tag, fmt, ...) _PKLOG_NOP
-#endif // CONF_PKLOG_LEVEL >= 5
+#endif // CONFPKLOG_LEVEL >= 5
+
+#undef PKLOGE
+#undef PKLOGW
+#undef PKLOGI
+#undef PKLOGD
+#undef PKLOGV
 
 #define PKLOGE(...) PKLOGE_TAG(TAG, ##__VA_ARGS__)
 #define PKLOGW(...) PKLOGW_TAG(TAG, ##__VA_ARGS__)
 #define PKLOGI(...) PKLOGI_TAG(TAG, ##__VA_ARGS__)
 #define PKLOGD(...) PKLOGD_TAG(TAG, ##__VA_ARGS__)
 #define PKLOGV(...) PKLOGV_TAG(TAG, ##__VA_ARGS__)
+
+#undef PKLOGE_UART
+#undef PKLOGW_UART
+#undef PKLOGI_UART
+#undef PKLOGD_UART
+#undef PKLOGV_UART
 
 #define PKLOGE_UART(...) PKLOGE_UART_TAG(TAG, ##__VA_ARGS__)
 #define PKLOGW_UART(...) PKLOGW_UART_TAG(TAG, ##__VA_ARGS__)

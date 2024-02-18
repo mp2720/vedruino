@@ -1,6 +1,6 @@
 #include "ip.h"
 
-#include "lib.h"
+#include "inc.h"
 #include <lwip/sockets.h>
 #include <sys/socket.h>
 

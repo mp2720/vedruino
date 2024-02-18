@@ -141,7 +141,8 @@ if args.gen_header:
         add_def("board", "startup_delay", type_='int')
 
         add_section_comm("log")
-        add_def("log", "level", type_='int')
+        add_def("log", "lib_level", type_='int')
+        add_def("log", "app_level", type_='int')
         add_def("log", "print_file_line", type_='bool')
         add_def("log", "print_time", type_='bool')
         add_def("log", "print_color", type_='bool')

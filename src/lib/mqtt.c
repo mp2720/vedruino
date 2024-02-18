@@ -1,7 +1,6 @@
 #include "mqtt.h"
 
-#include "log.h"
-#include "macro.h"
+#include "inc.h"
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>

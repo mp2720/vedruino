@@ -3,7 +3,7 @@
 // Долбоебы преопределили IPADDR_NONE, нужно включить раньше
 #include <WiFi.h>
 
-#include "lib/lib.h"
+#include "lib.h"
 
 static const char *TAG = "main";
 
