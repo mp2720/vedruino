@@ -15,7 +15,6 @@
 #define SERVER_TASK_STACK_SIZE 4096
 #define SERVER_TASK_PRIORITY 10
 #define SERVER_PORT 8419
-#define NOTIFY_PORT 8419
 
 static const char *TAG = "netlog";
 
@@ -29,7 +28,7 @@ static __NOINIT_ATTR struct {
 
 static __NOINIT_ATTR uint8_t shstack[SHSTACK_SIZE];
 static __NOINIT_ATTR char stdout_buf[STDOUT_BUF_SIZE];
-static __NOINIT_ATTR FILE *netlogout;
+static FILE *netlogout;
 static __NOINIT_ATTR char *shstack_write_buf;
 static __NOINIT_ATTR int shstack_write_n;
 
