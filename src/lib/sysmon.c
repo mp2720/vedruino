@@ -9,7 +9,7 @@
 #define LOG_TASK_STACK_SIZE 2048
 #define LOG_TASK_PRIORITY 24
 
-const char *TAG = "sysmon";
+static const char *TAG = "sysmon";
 
 static void log_task(void *);
 static bool idle_hook();

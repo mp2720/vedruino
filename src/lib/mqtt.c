@@ -141,13 +141,13 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     switch (event->event_id) {
 
     case MQTT_EVENT_CONNECTED: {
-        PKLOGV("MQTT_EVENT_CONNECTED");
+        PKLOGI("MQTT_EVENT_CONNECTED");
         vTaskResume(cb_task.task.handle);
         mqtt_connect_flag = 1;
     } break;
 
     case MQTT_EVENT_DISCONNECTED: {
-        PKLOGV("MQTT_EVENT_DISCONNECTED");
+        PKLOGW("MQTT_EVENT_DISCONNECTED");
         vTaskSuspend(cb_task.task.handle);
         mqtt_connect_flag = 0;
     } break;
@@ -230,7 +230,7 @@ static esp_err_t mqtt_event_handler_legacy(esp_mqtt_event_handle_t event) {
 }
 #endif
 
-void mqtt_init() {
+static void mqtt_init() {
     cb_task.queue.handle =
         xQueueCreateStatic(CB_TASK_QUEUE_LENGTH, sizeof(struct mqtt_callback_item),
                            cb_task.queue.storage, &cb_task.queue.buffer);
@@ -249,6 +249,8 @@ bool mqtt_connect() {
     uint16_t broker_port = CONF_MQTT_PORT;
     const char *username = CONF_MQTT_USER;
     const char *password = CONF_MQTT_PASSWORD;
+
+    mqtt_init();
 
     if (!cb_task.task.handle || !cb_task.queue.handle) {
         PKLOGE("Task or queue not initialized, run mqtt_init()");

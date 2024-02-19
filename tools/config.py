@@ -165,7 +165,8 @@ if args.gen_header:
 
         add_module("wifi", {
             'ssid': 'str',
-            'password': 'str'
+            'password': 'str',
+            'retry': 'int'
         })
 
         add_module("mqtt", {

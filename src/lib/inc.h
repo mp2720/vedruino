@@ -21,6 +21,12 @@ void pk_log_init();
        
 #include "log_defs.h"
 
+// === wifi ===
+
+#if CONF_WIFI_ENABLED
+bool pk_wifi_connect();
+#endif //CONF_WIFI_ENABLED
+
 // === ip ===
 
 #include "ip.h"

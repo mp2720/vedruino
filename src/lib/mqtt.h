@@ -29,9 +29,6 @@ typedef struct {
     int qos;             // quality of service
 } fl_topic_t;
 
-// Инициализирует инструменты. Запускать единожды
-void mqtt_init();
-
 // Подключиться к брокеру
 bool mqtt_connect();
 
