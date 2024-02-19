@@ -15,16 +15,17 @@ void mqtt_init();
 * `username` - имя пользователя mqtt
 * `password` - пароль пользователя mqtt
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
+bool mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
 ```
 ## Подписаться
 
 Получает массив топиков вида
 ```C
-typedef void (*callback_t)(const char *, const char *, size_t); //(char * topic, char * data, size_t data_size)
+//void callback(char * topic, char * data, int data_size) {}
+typedef void (*callback_t)(char *, char *, int); 
 
 typedef struct {
     const char * name;    //имя топика
@@ -37,18 +38,18 @@ typedef struct {
 
 Переданный массив сортируется.
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-int mqtt_subscribe_topics(fl_topic_t topics[], int len); 
+bool mqtt_subscribe_topics(fl_topic_t topics[], int len); 
 ```
 
 ## Отписаться
 Отписывается от топика с данным именем
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-int mqtt_unsubscribe_topic(const char * name);
+bool mqtt_unsubscribe_topic(const char * name);
 ```
 
 ## Отправить
@@ -59,24 +60,24 @@ int mqtt_unsubscribe_topic(const char * name);
 * `qos` - quality of service
 * `retain` - флаг брокеру, отправить это сообщение новым устройствам при их подключении
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-int mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
+bool mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 ```
 ## Отключиться
 Отписывается от текущего брокера
 ```C
-int mqtt_disconnect(); 
+bool mqtt_disconnect(); 
 ```
 
 ## Остановить/возобновить
 Останавливает и запускает вновь работу mqtt
 ```C
-int mqtt_stop(); 
-int mqtt_resume(); 
+bool mqtt_stop(); 
+bool mqtt_resume(); 
 ```
 ## Проверка подключения
-Возвращает `true` если брокер подключён, иначе `false`. Можно использовать для ожидания подключения. 
+Возвращает __1__ если брокер подключён, иначе __0__. Можно использовать для ожидания подключения. 
 ```C
 bool mqtt_is_connected(); 
 ```

@@ -19,8 +19,8 @@
 extern esp_mqtt_client_handle_t mqtt_client;
 
 // Тип функции вызываемой при получении сообщения на подписанный топик
-//(char * topic, char * data, size_t data_size)
-typedef void (*callback_t)(const char *, const char *, size_t);
+//(char * topic, char * data, int data_size)
+typedef void (*callback_t)(char *, char *, int);
 
 // Структура топика
 typedef struct {
@@ -32,28 +32,27 @@ typedef struct {
 // Инициализирует инструменты. Запускать единожды
 void mqtt_init();
 
-// Подключиться к брокеру на mqtt://broker_host:broker_port, с аутентификацией
-int mqtt_connect(const char *broker_host, uint16_t broker_port, const char *username,
-                 const char *password);
+// Подключиться к брокеру
+bool mqtt_connect();
 
 // Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные
 // топики
-int mqtt_subscribe_topics(fl_topic_t topics[], int len);
+bool mqtt_subscribe_topics(fl_topic_t topics[], int len);
 
 // Отписаться от топика
-int mqtt_unsubscribe_topic(const char *name);
+bool mqtt_unsubscribe_topic(const char *name);
 
 // Отправить сообщение, если data_size равно 0, то считает длинну строки
-int mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain);
+bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain);
 
 // Отключиться от брокера
-int mqtt_disconnect();
+bool mqtt_disconnect();
 
 // Приостановить работу mqtt
-int mqtt_stop();
+bool mqtt_stop();
 
 // Возобновить работу mqtt
-int mqtt_resume();
+bool mqtt_resume();
 
 // Возвращает 1 если брокер подключён, иначе 0
 bool mqtt_is_connected();

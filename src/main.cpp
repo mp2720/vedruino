@@ -3,7 +3,9 @@
 // Долбоебы преопределили IPADDR_NONE, нужно включить раньше
 #include <WiFi.h>
 
+#include "esp32-hal.h"
 #include "lib.h"
+#include "lib/mqtt.h"
 
 static const char *TAG = "main";
 
@@ -45,6 +47,16 @@ void setup() {
 #if CONF_OTA_ENABLED
     if (!ota_server_start())
         PKLOGE("failed to start ota server");
+#endif
+
+#if CONF_MQTT_ENABLED
+    mqtt_init();
+    if (!mqtt_connect())
+        PKLOGE("failed to connect mqtt");
+    else {
+        while (!mqtt_is_connected())
+            delay(100);
+    }
 #endif
 
     PKLOGI("setup() finished");
