@@ -1,54 +1,55 @@
 #include "conf.h"
-#include "lib/lib.h"
-#include <Arduino.h>
+
+// Долбоебы преопределили IPADDR_NONE, нужно включить раньше
 #include <WiFi.h>
-#include <time.h>
 
-static const char *TAG = "MAIN";
+#include "lib.h"
 
-void start_wifi() {
-    WiFi.mode(WIFI_STA); // Optional
-    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWD);
-    puts("\nConnecting WIFI");
-    while (WiFi.status() != WL_CONNECTED) {
-        printf(".");
-        fflush(stdout);
-        delay(100);
-    }
-    puts("\nConnected to the WiFi network");
-    printf("Local ESP32 IP: %s\n", WiFi.localIP().toString().c_str());
-}
-
-void start_log() {
-    log_socket = tcplog_connect(CONF_LOG_HOST, CONF_LOG_PORT);
-    log_output = tcplog_printf;
-}
-
-void start_mqtt() {
-    mqtt_init();
-    mqtt_connect(CONF_MQTT_HOST, CONF_MQTT_PORT, CONF_MQTT_USER, CONF_MQTT_PASSWD);
-    while (!mqtt_is_connected()) {
-        printf(".");
-        fflush(stdout);
-        delay(100);
-    }
-    puts("");
-    // mqtt_subscribe_topics(topics, sizeof(topics)/sizeof(topics[0]));
-}
+static const char *TAG = "main";
 
 void setup() {
-    Serial.begin(CONF_BAUD);
-    delay(CONF_STARTUP_DELAY);
+    pk_log_init();
 
-    start_wifi();
-    start_log();
-    start_mqtt();
+    PKLOGI("executing startup delay");
+    delay(CONF_BOARD_STARTUP_DELAY);
 
-#if CONF_TCP_OTA_ENABLED
-    ota_server_start(CONF_TCP_OTA_PORT);
+    const char *rp = pk_running_part_label();
+    PKLOGI("running %s parition", rp == NULL ? "UNKNOWN" : rp);
+    PKLOGI("built on " __DATE__ " at " __TIME__);
+
+#if CONF_WIFI_ENABLED
+    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
+    PKLOGI("connecting to %s...", CONF_WIFI_SSID);
+    PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(100);
+    }
+    PKLOGI("WiFi connection established");
+    PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
+#endif // CONF_WIFI_ENABLED
+
+#if CONF_SYSMON_ENABLED
+    sysmon_start();
 #endif
+
+#if CONF_MDNS_ENABLED
+    if (!pk_mdns_init())
+        PKLOGE("failed to init mdns");
+#endif // CONF_MDNS_ENABLED
+
+#if CONF_NETLOG_ENABLED
+    if (!pk_netlog_init())
+        PKLOGE("failed to init netlog");
+#endif // CONF_NETLOG_ENABLED
+
+#if CONF_OTA_ENABLED
+    if (!ota_server_start())
+        PKLOGE("failed to start ota server");
+#endif
+
+    PKLOGI("setup() finished");
 }
 
 void loop() {
-    delay(1000);
+    delay(10000);
 }

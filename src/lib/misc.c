@@ -1,21 +1,17 @@
-#include "lib.h"
+#include "inc.h"
 
 #include <esp_ota_ops.h>
+#include <esp_system.h>
 #include <stdlib.h>
 
-static const char *TAG = "MEM";
-
-void misc_running_partition(char out_label[MISC_PART_LABEL_SIZE]) {
+const char* pk_running_part_label() {
     const esp_partition_t *part = esp_ota_get_running_partition();
-    const char *lab = part->label;
-    int i = 0;
-    while (lab[i] && i < MISC_PART_LABEL_SIZE) {
-        out_label[i] = lab[i];
-        ++i;
-    }
+    if (part == NULL)
+        return NULL;
+    return part->label;
 }
 
-void misc_hum_size(size_t size, float *out_f, char *out_suf) {
+void pk_hum_size(size_t size, float *out_f, char *out_suf) {
     const char sufs[] = "\0KMGTPEZY";
 
     *out_f = size;
@@ -32,5 +28,37 @@ void misc_hum_size(size_t size, float *out_f, char *out_suf) {
         out_suf[0] = sufs[suf_i];
         out_suf[1] = 'i';
         out_suf[2] = 0;
+    }
+}
+
+const char *pk_reset_reason_str() {
+    switch (esp_reset_reason()) {
+    case ESP_RST_POWERON:
+        return "POWERON";
+    case ESP_RST_EXT:
+        return "EXIT";
+    case ESP_RST_SW:
+        return "SOFT";
+    case ESP_RST_PANIC:
+        return "PANIC";
+    case ESP_RST_INT_WDT:
+        return "INT_WDT";
+    case ESP_RST_TASK_WDT:
+        return "TASK_WDT";
+    case ESP_RST_WDT:
+        return "WDT";
+    case ESP_RST_DEEPSLEEP:
+        return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT:
+        return "BROWNOUT";
+    case ESP_RST_SDIO:
+        return "SDIO";
+    /* case ESP_RST_USB: */
+    /*     return "USB"; */
+    /* case ESP_RST_JTAG: */
+    /*     return "JTAG"; */
+    case ESP_RST_UNKNOWN:
+    default:
+        return "UNKNOWN";
     }
 }

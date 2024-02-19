@@ -1,11 +1,13 @@
 SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h')
 
-SKETCH=$(shell tools/config.py -g arduino:sketch_name)
-PORT=$(shell tools/config.py -g board:port)
-FQBN=$(shell tools/config.py -g board:fqbn)
-BAUD=$(shell tools/config.py -g board:baud)
-BOARD_IP=$(shell tools/config.py -g board:ip)
-OTA_PORT=$(shell tools/config.py -g tcp_ota:port)
+CONF=default_config.ini
+
+SKETCH=$(shell tools/config.py ${CONF} -g arduino:sketch_name)
+PORT=$(shell tools/config.py ${CONF} -g board:port)
+FQBN=$(shell tools/config.py ${CONF} -g board:fqbn)
+BAUD=$(shell tools/config.py ${CONF} -g log:uart_baud)
+BOARD_IP=$(shell tools/config.py ${CONF} -g board:ip)
+OTA_PORT=$(shell tools/config.py ${CONF} -g tcp_ota:port)
 
 BIN_PATH=build/${SKETCH}.ino.bin
 
@@ -14,7 +16,7 @@ ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maxi
 TOOLCHAIN_PATH=$(shell tools/config.py -g arduino:toolchain_path)
 
 src/conf.h: config.ini
-	tools/config.py -c
+	tools/config.py ${CONF} -c
  
 build/${SKETCH}.ino.bin: $(SRC)
 	arduino-cli compile ${ARDUINO_COMPILE_FLAGS} --build-path ./build

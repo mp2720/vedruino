@@ -1,4 +1,7 @@
-#include "log.h"
-#include <stdio.h>
+#include "inc.h"
 
-printf_like_t log_output = printf;
+FILE *pk_log_uartout;
+
+void pk_log_init() {
+    pk_log_uartout = stdout;
+}

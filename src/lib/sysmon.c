@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "inc.h"
 #include <esp_freertos_hooks.h>
 #include <esp_heap_caps.h>
 #include <esp_ipc_isr.h>
@@ -27,16 +27,16 @@ static SemaphoreHandle_t idle_mutex[1];
 #endif // CONF_SYSMON_DUALCORE
 
 // Для тестирования
-/* #pragma GCC push_options */
-/* #pragma GCC optimize("O0") */
-/* void loop_task(UNUSED void *p) { */
-/*     while (1) { */
-/*         vTaskDelay(2); */
-/*         for (int i = 0; i < 1e6; ++i) { */
-/*         } */
-/*     } */
-/* } */
-/* #pragma GCC pop_options */
+#pragma GCC push_options
+#pragma GCC optimize("O0")
+void loop_task(UNUSED void *p) {
+    while (1) {
+        vTaskDelay(2);
+        for (int i = 0; i < 1e6; ++i) {
+        }
+    }
+}
+#pragma GCC pop_options
 
 int sysmon_start() {
     total_heap = heap_caps_get_total_size(MALLOC_CAP_DEFAULT);
@@ -54,19 +54,19 @@ int sysmon_start() {
         || (idle_mutex[1] = xSemaphoreCreateMutex()) == NULL
 #endif // CONF_SYSMON_DUALCORE
     ) {
-        DFLT_LOGE(TAG, "xSemaphoreCreateMutex() failed");
+        PKLOGE("xSemaphoreCreateMutex() failed");
         return -1;
     }
 
     esp_err_t err;
     if ((err = esp_register_freertos_idle_hook_for_cpu(&idle_hook, 0)) != ESP_OK) {
-        DFLT_LOGE(TAG, "esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
+        PKLOGE("esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
         return -1;
     }
 
 #if CONF_SYSMON_DUALCORE
     if ((err = esp_register_freertos_idle_hook_for_cpu(&idle_hook, 1)) != ESP_OK) {
-        DFLT_LOGE(TAG, "esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
+        PKLOGE("esp_register_freertos_idle_hook_for_cpu() failed: %s", esp_err_to_name(err));
         return -1;
     }
 #endif // CONF_SYSMON_DUALCORE
@@ -74,15 +74,18 @@ int sysmon_start() {
 
     if (xTaskCreate(&log_task, "sysmon_log", LOG_TASK_STACK_SIZE, NULL, LOG_TASK_PRIORITY,
                     &log_task_hnd) != pdPASS) {
-        DFLT_LOGE(TAG, "xTaskCreate() failed");
+        PKLOGE("xTaskCreate() failed");
         return -1;
     }
 
     // Для тестирования
     /* xTaskCreate(&loop_task, "loop0", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
+    /* xTaskCreate(&loop_task, "loop0", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
+    /* xTaskCreate(&loop_task, "loop0", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
+    /* xTaskCreate(&loop_task, "loop0", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
     /* xTaskCreate(&loop_task, "loop1", LOG_TASK_STACK_SIZE, NULL, 1, NULL); */
 
-    DFLT_LOGD(TAG, "started");
+    PKLOGV("started");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 
     return 0;
@@ -97,14 +100,14 @@ void sysmon_dump_heap_stat() {
     misc_hum_size(used_heap, &used_f, used_s);
 
     float mem_usage = 100.f * used_f / total_f;
-    DFLT_LOGI(TAG, "heap %.2f%sB/%.2f%sB (%.1f%%)", used_f, used_s, total_f, total_s, mem_usage);
+    PKLOGI("heap %.2f%sB/%.2f%sB (%.1f%%)", used_f, used_s, total_f, total_s, mem_usage);
 }
 
 void sysmon_dump_tasks() {
     unsigned tasks_num = uxTaskGetNumberOfTasks();
     TaskSnapshot_t *snapshots = malloc(tasks_num * sizeof(*snapshots));
     if (snapshots == NULL) {
-        DFLT_LOGE(TAG, "malloc() failed");
+        PKLOGE("malloc() failed");
         return;
     }
     UNUSED unsigned tcb_size;
@@ -141,7 +144,8 @@ void sysmon_dump_tasks() {
         }
         unsigned cur_pr = uxTaskPriorityGet(thnd);
 
-        DFLT_LOGI(TAG, "TASK %s %p %s %u %p %p", name, thnd, state, cur_pr, stack_end, stack_top);
+        PKLOGI("TASK %s %p %s %u %p %p", name, thnd, state, cur_pr, stack_end, stack_top);
+        // TASK xxxxxxxxxxxxxxxx 00000000 S PP 00000000 00000000
     }
 
     free(snapshots);
@@ -150,14 +154,14 @@ void sysmon_dump_tasks() {
 void sysmon_pause() {
 #if CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
     vTaskSuspend(log_task_hnd);
-    DFLT_LOGD(TAG, "paused");
+    PKLOGV("paused");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 }
 
 void sysmon_resume() {
 #if CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
     vTaskResume(log_task_hnd);
-    DFLT_LOGD(TAG, "resumed");
+    PKLOGV("resumed");
 #endif // CONF_SYSMON_MONITOR_CPU || CONF_SYSMON_MONITOR_HEAP || CONF_SYSMON_MONITOR_TASKS
 }
 
@@ -201,7 +205,7 @@ static inline void log_and_reset_cpu_load(int core_id) {
         TickType_t ticks = CONF_SYSMON_LOG_INTERVAL_MS / portTICK_PERIOD_MS;
         float load = 1.f - MIN(idle_ticks[core_id] / (float)ticks, 1.f);
         load *= 100.f;
-        DFLT_LOGI(TAG, "cpu%d %.1f%%", core_id, load);
+        PKLOGI("cpu%d %.1f%%", core_id, load);
         idle_ticks[core_id] = 0;
         xSemaphoreGive(idle_mutex[core_id]);
     }
