@@ -6,7 +6,7 @@
 Подключение к брокеру, информация о брокере берётся из конфига вида:
 ```
 [mqtt]
-enabled=true
+enabled=(bool)
 host=(str)
 port=(int)
 user=(str)
@@ -33,7 +33,7 @@ typedef struct {
     const char * name;    //имя топика
     callback_t callback;  //функция которая будет вызвана при получении сообщения на данный топик    
     int qos;              //quality of service
-} fl_topic_t;
+} pk_topic_t;
 
 ```
 и размер данного массива. Отписывается от старых и подписывается на новые.
@@ -43,7 +43,7 @@ typedef struct {
 Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-bool mqtt_subscribe_topics(fl_topic_t topics[], int len); 
+bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len); 
 ```
 
 ## Отписаться
@@ -78,8 +78,23 @@ bool mqtt_disconnect();
 bool mqtt_stop(); 
 bool mqtt_resume(); 
 ```
-## Проверка подключения
-Возвращает __1__ если брокер подключён, иначе __0__. Можно использовать для ожидания подключения. 
+## События
+Для ожидания подтверждения некоторых событий MQTT используйте EventGroup из freertos
 ```C
-bool mqtt_is_connected(); 
+// флаги собыйтий mqtt
+extern EventGroupHandle_t pk_mqtt_event_group;
+#define MQTT_CONNECTED_BIT (1 << 0)
+#define MQTT_DISCONNECTED_BIT (1 << 1)
+#define MQTT_PUBLISHED_BIT (1 << 2)
+#define MQTT_SUBSCRIBED_BIT (1 << 3)
+#define MQTT_UNSUBSCRIBED_BIT (1 << 4)
+#define MQTT_DATA_BIT (1 << 5)
+
 ```
+Отправка с ожиданием:
+```C
+xEventGroupClearBits(mqtt_event_group, MQTT_PUBLISHED_BIT)
+mqtt_publish(topic, data, 0, 2, 0);
+xEventGroupWaitBits(mqtt_event_group, MQTT_PUBLISHED_BIT, pdTrue, pdFALSE, portMAX_DELAY);
+```
+

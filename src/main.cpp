@@ -46,15 +46,10 @@ void setup() {
 #if CONF_MQTT_ENABLED
     if (!mqtt_connect())
         PKLOGE("failed to connect mqtt");
-    else {
-        PKLOGI("wait to mqtt connection...");
-        while (!mqtt_is_connected())
-            delay(100);
-    }
 #endif
     PKLOGI("setup() finished");
 }
 
 void loop() {
-    delay(10000);
+    vTaskDelete(NULL);
 }

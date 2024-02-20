@@ -4,13 +4,11 @@
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/event_groups.h>
+#include <freertos/task.h>
 #include <freertos/portmacro.h>
 #include <freertos/projdefs.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
-#include <freertos/task.h>
 #include <inttypes.h>
 #include <lwip/dns.h>
 #include <lwip/err.h>
@@ -24,25 +22,29 @@
 
 static const char *TAG = "mqtt";
 
-static bool mqtt_connect_flag = 0;
-
 esp_mqtt_client_handle_t mqtt_client = NULL;
 
+EventGroupHandle_t pk_mqtt_event_group = NULL;
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(3, 0, 0)
+#error ESP_IDF_VERSION < 3.0.0 убери это говно
+#endif
+
 static struct {
-    fl_topic_t *pairs;
+    pk_topic_t *pairs;
     int size;
 } subs_topics = {.pairs = NULL, .size = 0};
 
 static SemaphoreHandle_t topics_mutex;
 
 static int topic_pair_cmp(const void *a, const void *b) {
-    return strcmp(((const fl_topic_t *)a)->name, ((const fl_topic_t *)b)->name);
+    return strcmp(((const pk_topic_t *)a)->name, ((const pk_topic_t *)b)->name);
 }
 
-bool mqtt_subscribe_topics(fl_topic_t topics[], int len) {
+bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
     int res = 1;
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        for (int i = 0; i < subs_topics.size; i++) { //отписка от предыдущих
+        for (int i = 0; i < subs_topics.size; i++) { // отписка от предыдущих
             if (esp_mqtt_client_unsubscribe(mqtt_client, subs_topics.pairs[i].name) < 0) {
                 PKLOGE("esp_mqtt_client_unsubscribe() error");
                 res = 0;
@@ -50,7 +52,7 @@ bool mqtt_subscribe_topics(fl_topic_t topics[], int len) {
         }
         subs_topics.pairs = topics;
         subs_topics.size = len;
-        qsort(subs_topics.pairs, subs_topics.size, sizeof(fl_topic_t), topic_pair_cmp);
+        qsort(subs_topics.pairs, subs_topics.size, sizeof(pk_topic_t), topic_pair_cmp);
 
         for (int i = 0; i < subs_topics.size; i++) {
             if (esp_mqtt_client_subscribe(mqtt_client, (char *)subs_topics.pairs[i].name,
@@ -67,12 +69,12 @@ bool mqtt_subscribe_topics(fl_topic_t topics[], int len) {
     return res;
 }
 
-static fl_topic_t *find_callback(const char *name) {
+static pk_topic_t *find_callback(const char *name) {
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        fl_topic_t search_tmp_topic = {.name = name};
-        fl_topic_t *pair =
-            (fl_topic_t *)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size,
-                                  sizeof(fl_topic_t), topic_pair_cmp);
+        pk_topic_t search_tmp_topic = {.name = name};
+        pk_topic_t *pair =
+            (pk_topic_t *)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size,
+                                  sizeof(pk_topic_t), topic_pair_cmp);
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
@@ -143,30 +145,34 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     case MQTT_EVENT_CONNECTED: {
         PKLOGI("MQTT_EVENT_CONNECTED");
         vTaskResume(cb_task.task.handle);
-        mqtt_connect_flag = 1;
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT);
     } break;
 
     case MQTT_EVENT_DISCONNECTED: {
         PKLOGW("MQTT_EVENT_DISCONNECTED");
         vTaskSuspend(cb_task.task.handle);
-        mqtt_connect_flag = 0;
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_DISCONNECTED_BIT);
     } break;
 
     case MQTT_EVENT_SUBSCRIBED: {
         PKLOGV("MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_SUBSCRIBED_BIT);
     } break;
 
     case MQTT_EVENT_UNSUBSCRIBED: {
         PKLOGV("MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_UNSUBSCRIBED_BIT);
     } break;
 
     case MQTT_EVENT_PUBLISHED: {
         PKLOGV("MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT);
     } break;
 
     case MQTT_EVENT_DATA: {
 
         PKLOGV("MQTT_EVENT_DATA: topic: \"%.*s\"", event->topic_len, event->topic);
+        xEventGroupSetBits(pk_mqtt_event_group, MQTT_DATA_BIT);
 
         char *topic_copy = (char *)malloc(event->topic_len + 1);
         if (!topic_copy) {
@@ -177,7 +183,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
         memcpy(topic_copy, event->topic, event->topic_len);
         topic_copy[event->topic_len] = '\0';
 
-        fl_topic_t *pair = find_callback(topic_copy);
+        pk_topic_t *pair = find_callback(topic_copy);
         if (!pair) {
             PKLOGW("Callback for \"%s\" topic not found", topic_copy);
             free(topic_copy);
@@ -245,11 +251,6 @@ static void mqtt_init() {
 }
 
 bool mqtt_connect() {
-    const char *broker_host = CONF_MQTT_HOST;
-    uint16_t broker_port = CONF_MQTT_PORT;
-    const char *username = CONF_MQTT_USER;
-    const char *password = CONF_MQTT_PASSWORD;
-
     mqtt_init();
 
     if (!cb_task.task.handle || !cb_task.queue.handle) {
@@ -257,22 +258,20 @@ bool mqtt_connect() {
         return 0;
     }
 
+    pk_mqtt_event_group = xEventGroupCreate();
+
     esp_mqtt_client_config_t mqtt_cfg;
     memset(&mqtt_cfg, 0, sizeof(mqtt_cfg));
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    mqtt_cfg.broker.address.hostname = broker_host, mqtt_cfg.broker.address.port = broker_port,
-    mqtt_cfg.credentials.username = username,
-    mqtt_cfg.credentials.authentication.password = password,
-#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
-    mqtt_cfg.host = broker_host, mqtt_cfg.port = broker_port, mqtt_cfg.username = username,
-    mqtt_cfg.password = password,
-#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(3, 0, 0)
-    mqtt_cfg.event_handle = mqtt_event_handler_legacy, mqtt_cfg.host = broker_host,
-    mqtt_cfg.port = broker_port, mqtt_cfg.username = username, mqtt_cfg.password = password,
-#else
-#error Old ESP-IDF version, < 3.0.0
+    mqtt_cfg.host = CONF_MQTT_HOST;
+    mqtt_cfg.port = CONF_MQTT_PORT;
+    mqtt_cfg.username = CONF_MQTT_USER;
+    mqtt_cfg.password = CONF_MQTT_PASSWORD;
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0)
+    mqtt_cfg.event_handle = mqtt_event_handler_legacy;
 #endif
+
+    
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!mqtt_client) {
@@ -281,8 +280,8 @@ bool mqtt_connect() {
     }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
-    esp_err_t res1 = esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID,
-                                              mqtt_event_handler, NULL);
+    esp_err_t res1 = esp_mqtt_client_register_event(
+        mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     if (res1 != ESP_OK) {
         PKLOGE("esp_mqtt_client_register_event() error: %d - %s", (int)res1, esp_err_to_name(res1));
         return 0;
@@ -293,6 +292,15 @@ bool mqtt_connect() {
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_start() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
+    }
+    PKLOGI("Connecting to %s:%d", CONF_MQTT_HOST, CONF_MQTT_PORT);
+
+    EventBits_t bits =
+        xEventGroupWaitBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+    if (bits & MQTT_CONNECTED_BIT) {
+        PKLOGI("Connected to MQTT");
+    } else {
+        PKLOGE("UNEXPECTED EVENT");
     }
 
     return 1;
@@ -337,8 +345,4 @@ bool mqtt_resume() {
         return 0;
     }
     return 1;
-}
-
-bool mqtt_is_connected() {
-    return mqtt_connect_flag;
 }
