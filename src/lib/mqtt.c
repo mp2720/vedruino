@@ -26,10 +26,6 @@ esp_mqtt_client_handle_t mqtt_client = NULL;
 
 EventGroupHandle_t pk_mqtt_event_group = NULL;
 
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(3, 0, 0)
-#error ESP_IDF_VERSION < 3.0.0 убери это говно
-#endif
-
 static struct {
     pk_topic_t *pairs;
     int size;
@@ -223,13 +219,6 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     }
 }
 
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0)
-static esp_err_t mqtt_event_handler_legacy(esp_mqtt_event_handle_t event) {
-    mqtt_event_handler(NULL, "", 0, (void *)event);
-    return ESP_OK;
-}
-#endif
-
 bool mqtt_connect() {
     cb_task.queue.handle = xQueueCreate(CB_TASK_QUEUE_LENGTH, sizeof(struct mqtt_callback_item));
     if (!cb_task.queue.handle) {
@@ -253,9 +242,6 @@ bool mqtt_connect() {
     mqtt_cfg.port = CONF_MQTT_PORT;
     mqtt_cfg.username = CONF_MQTT_USER;
     mqtt_cfg.password = CONF_MQTT_PASSWORD;
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0)
-    mqtt_cfg.event_handle = mqtt_event_handler_legacy;
-#endif
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!mqtt_client) {
@@ -263,14 +249,12 @@ bool mqtt_connect() {
         return 0;
     }
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
     esp_err_t res1 = esp_mqtt_client_register_event(
         mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     if (res1 != ESP_OK) {
         PKLOGE("esp_mqtt_client_register_event() error: %d - %s", (int)res1, esp_err_to_name(res1));
         return 0;
     }
-#endif
 
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
     if (res != ESP_OK) {
