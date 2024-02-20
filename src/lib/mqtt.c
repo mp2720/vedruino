@@ -4,11 +4,11 @@
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-#include <freertos/task.h>
 #include <freertos/portmacro.h>
 #include <freertos/projdefs.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
+#include <freertos/task.h>
 #include <inttypes.h>
 #include <lwip/dns.h>
 #include <lwip/err.h>
@@ -115,13 +115,9 @@ struct mqtt_callback_item {
 static struct {
     struct {
         TaskHandle_t handle;
-        StaticTask_t buffer;
-        StackType_t stack[CB_TASK_STACK_SIZE];
     } task;
     struct {
         QueueHandle_t handle;
-        StaticQueue_t buffer;
-        uint8_t storage[CB_TASK_QUEUE_LENGTH * sizeof(struct mqtt_callback_item)];
     } queue;
 } cb_task;
 
@@ -144,13 +140,11 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
 
     case MQTT_EVENT_CONNECTED: {
         PKLOGI("MQTT_EVENT_CONNECTED");
-        vTaskResume(cb_task.task.handle);
         xEventGroupSetBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT);
     } break;
 
     case MQTT_EVENT_DISCONNECTED: {
         PKLOGW("MQTT_EVENT_DISCONNECTED");
-        vTaskSuspend(cb_task.task.handle);
         xEventGroupSetBits(pk_mqtt_event_group, MQTT_DISCONNECTED_BIT);
     } break;
 
@@ -236,28 +230,20 @@ static esp_err_t mqtt_event_handler_legacy(esp_mqtt_event_handle_t event) {
 }
 #endif
 
-static void mqtt_init() {
-    cb_task.queue.handle =
-        xQueueCreateStatic(CB_TASK_QUEUE_LENGTH, sizeof(struct mqtt_callback_item),
-                           cb_task.queue.storage, &cb_task.queue.buffer);
-
-    cb_task.task.handle =
-        xTaskCreateStatic(mqtt_callback_task, "fl_mqtt_callback_task", CB_TASK_STACK_SIZE, NULL,
-                          TASK_DEFAULT_PRIORITY, cb_task.task.stack, &cb_task.task.buffer);
-    vTaskSuspend(cb_task.task.handle);
-    topics_mutex = xSemaphoreCreateMutex();
-
-    PKLOGI("initialized");
-}
-
 bool mqtt_connect() {
-    mqtt_init();
-
-    if (!cb_task.task.handle || !cb_task.queue.handle) {
-        PKLOGE("Task or queue not initialized, run mqtt_init()");
+    cb_task.queue.handle = xQueueCreate(CB_TASK_QUEUE_LENGTH, sizeof(struct mqtt_callback_item));
+    if (!cb_task.queue.handle) {
+        PKLOGE("MQTT queue create error");
+        return 0;
+    }
+    BaseType_t err = xTaskCreate(mqtt_callback_task, "pk_mqtt_callback_task", CB_TASK_STACK_SIZE,
+                                 NULL, TASK_DEFAULT_PRIORITY, &cb_task.task.handle);
+    if (err != pdPASS) {
+        PKLOGE("MQTT callback task create error: %d", (int)err);
         return 0;
     }
 
+    topics_mutex = xSemaphoreCreateMutex();
     pk_mqtt_event_group = xEventGroupCreate();
 
     esp_mqtt_client_config_t mqtt_cfg;
@@ -270,8 +256,6 @@ bool mqtt_connect() {
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0)
     mqtt_cfg.event_handle = mqtt_event_handler_legacy;
 #endif
-
-    
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!mqtt_client) {
@@ -295,8 +279,8 @@ bool mqtt_connect() {
     }
     PKLOGI("Connecting to %s:%d", CONF_MQTT_HOST, CONF_MQTT_PORT);
 
-    EventBits_t bits =
-        xEventGroupWaitBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+    EventBits_t bits = xEventGroupWaitBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT, pdFALSE,
+                                           pdFALSE, portMAX_DELAY);
     if (bits & MQTT_CONNECTED_BIT) {
         PKLOGI("Connected to MQTT");
     } else {
@@ -306,14 +290,25 @@ bool mqtt_connect() {
     return 1;
 }
 
-bool mqtt_disconnect() {
+bool mqtt_delete() {
     esp_err_t res = esp_mqtt_client_disconnect(mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_disconnect error: %d - %s", (int)res, esp_err_to_name(res));
-        return 0;
     }
-    if (cb_task.task.handle)
-        vTaskSuspend(cb_task.task.handle);
+    res = esp_mqtt_client_destroy(mqtt_client);
+    if (res != ESP_OK) {
+        PKLOGE("esp_mqtt_client_destroy error: %d - %s", (int)res, esp_err_to_name(res));
+    }
+    vTaskDelete(cb_task.task.handle);
+    vQueueDelete(cb_task.queue.handle);
+    vEventGroupDelete(pk_mqtt_event_group);
+    vSemaphoreDelete(topics_mutex);
+
+    mqtt_client = NULL;
+    cb_task.task.handle = NULL;
+    cb_task.queue.handle = NULL;
+    pk_mqtt_event_group = NULL;
+    topics_mutex = NULL;
     return 1;
 }
 
@@ -327,8 +322,6 @@ bool mqtt_stop() {
         PKLOGE("esp_mqtt_client_stop fail: %d - %s", res, esp_err_to_name(res));
         return 0;
     }
-    if (cb_task.task.handle)
-        vTaskSuspend(cb_task.task.handle);
     return 1;
 }
 
@@ -337,8 +330,6 @@ bool mqtt_resume() {
         PKLOGW("Nothing to resume");
         return 0;
     }
-    if (cb_task.task.handle)
-        vTaskResume(cb_task.task.handle);
     esp_err_t res = esp_mqtt_client_start(mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_start fail: %d - %s", res, esp_err_to_name(res));

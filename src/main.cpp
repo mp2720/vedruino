@@ -1,10 +1,8 @@
 #include "conf.h"
 
-// Долбоебы преопределили IPADDR_NONE, нужно включить раньше
-#include <WiFi.h>
-
 #include "esp32-hal.h"
 #include "lib.h"
+#include "lib/macro.h"
 #include "lib/mqtt.h"
 
 static const char *TAG = "main";
@@ -20,7 +18,7 @@ void setup() {
     PKLOGI("built on " __DATE__ " at " __TIME__);
 
 #if CONF_WIFI_ENABLED
-    if(!pk_wifi_connect())
+    if (!pk_wifi_connect())
         PKLOGE("failed to connect to wifi");
 #endif // CONF_WIFI_ENABLED
 

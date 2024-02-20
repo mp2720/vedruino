@@ -49,8 +49,8 @@ bool mqtt_unsubscribe_topic(const char *name);
 // Отправить сообщение, если data_size равно 0, то считает длинну строки
 bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain);
 
-// Отключиться от брокера
-bool mqtt_disconnect();
+// Выключить mqtt и освободить ресурсы
+bool mqtt_delete();
 
 // Приостановить работу mqtt
 bool mqtt_stop();

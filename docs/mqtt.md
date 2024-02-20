@@ -67,7 +67,7 @@ bool mqtt_unsubscribe_topic(const char * name);
 bool mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 ```
 ## Отключиться
-Отписывается от текущего брокера
+Отписывается от текущего брокера и освобождает ресурсы
 ```C
 bool mqtt_disconnect(); 
 ```
