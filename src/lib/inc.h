@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// === i2c ===
+
+#include "i2c_tools.h"
+
 EXTERNC_BEGIN
 
 // === log ===
