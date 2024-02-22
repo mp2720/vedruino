@@ -54,4 +54,4 @@
 * 8419 (TCP) - `netlog` сервер контроля рассылки.
 
 UDP broadcast:
-* 8149 - `netlog` boot notifications.
+* 8419 - `netlog` boot notifications.
