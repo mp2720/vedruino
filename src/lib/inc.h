@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// === i2c ===
+
+#include "i2c_tools.h"
+
 EXTERNC_BEGIN
 
 // === log ===
@@ -20,6 +24,12 @@ void pk_log_init(void);
 #endif // PK_LIB_INCLUDE_FROM_APP
 
 #include "log_defs.h"
+
+// === wifi ===
+
+#if CONF_WIFI_ENABLED
+bool pk_wifi_connect();
+#endif //CONF_WIFI_ENABLED
 
 // === ip ===
 

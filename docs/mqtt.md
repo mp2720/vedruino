@@ -2,53 +2,56 @@
 
 Библиотека для удобной работы с mqtt. Подписывается на данный массив топиков и вызывает функции при получении сообщений
 
-## Инициализация
-Инициализирует задачу и очередь. Вызывать в первую очередь, единожды.
-```C
-void mqtt_init();
-```
-
 ## Подключиться
-Подключение к брокеру
-* `broker_host` - имя хоста
-* `broker_port` - порт хоста
-* `username` - имя пользователя mqtt
+Подключение к брокеру, информация о брокере берётся из конфига вида:
+```
+[mqtt]
+enabled=(bool)
+host=(str)
+port=(int)
+user=(str)
+password=(str)
+```
+* `host` - имя хоста
+* `port` - порт хоста
+* `user` - имя пользователя mqtt
 * `password` - пароль пользователя mqtt
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-int mqtt_connect(const char * broker_host, uint16_t broker_port, const char * username, const char * password);
+bool mqtt_connect();
 ```
 ## Подписаться
 
 Получает массив топиков вида
 ```C
-typedef void (*callback_t)(const char *, const char *, size_t); //(char * topic, char * data, size_t data_size)
+//void callback(char * topic, char * data, int data_size) {}
+typedef void (*callback_t)(char *, char *, int); 
 
 typedef struct {
     const char * name;    //имя топика
     callback_t callback;  //функция которая будет вызвана при получении сообщения на данный топик    
     int qos;              //quality of service
-} fl_topic_t;
+} pk_topic_t;
 
 ```
 и размер данного массива. Отписывается от старых и подписывается на новые.
 
 Переданный массив сортируется.
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-int mqtt_subscribe_topics(fl_topic_t topics[], int len); 
+bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len); 
 ```
 
 ## Отписаться
 Отписывается от топика с данным именем
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-int mqtt_unsubscribe_topic(const char * name);
+bool mqtt_unsubscribe_topic(const char * name);
 ```
 
 ## Отправить
@@ -59,24 +62,39 @@ int mqtt_unsubscribe_topic(const char * name);
 * `qos` - quality of service
 * `retain` - флаг брокеру, отправить это сообщение новым устройствам при их подключении
 
-Возвращает __0__ при успехе и __1__ при неудаче
+Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-int mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
+bool mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 ```
 ## Отключиться
-Отписывается от текущего брокера
+Отписывается от текущего брокера и освобождает ресурсы
 ```C
-int mqtt_disconnect(); 
+bool mqtt_disconnect(); 
 ```
 
 ## Остановить/возобновить
 Останавливает и запускает вновь работу mqtt
 ```C
-int mqtt_stop(); 
-int mqtt_resume(); 
+bool mqtt_stop(); 
+bool mqtt_resume(); 
 ```
-## Проверка подключения
-Возвращает `true` если брокер подключён, иначе `false`. Можно использовать для ожидания подключения. 
+## События
+Для ожидания подтверждения некоторых событий MQTT используйте EventGroup из freertos
 ```C
-bool mqtt_is_connected(); 
+// флаги собыйтий mqtt
+extern EventGroupHandle_t pk_mqtt_event_group;
+#define MQTT_CONNECTED_BIT (1 << 0)
+#define MQTT_DISCONNECTED_BIT (1 << 1)
+#define MQTT_PUBLISHED_BIT (1 << 2)
+#define MQTT_SUBSCRIBED_BIT (1 << 3)
+#define MQTT_UNSUBSCRIBED_BIT (1 << 4)
+#define MQTT_DATA_BIT (1 << 5)
+
 ```
+Отправка с ожиданием:
+```C
+xEventGroupClearBits(mqtt_event_group, MQTT_PUBLISHED_BIT)
+mqtt_publish(topic, data, 0, 2, 0);
+xEventGroupWaitBits(mqtt_event_group, MQTT_PUBLISHED_BIT, pdTrue, pdFALSE, portMAX_DELAY);
+```
+

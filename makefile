@@ -1,6 +1,6 @@
 SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h')
 
-CONF=config.ini
+CONF=./config.ini
 
 SKETCH=$(shell tools/config.py ${CONF} -g arduino:sketch_name)
 PORT=$(shell tools/config.py ${CONF} -g board:port)

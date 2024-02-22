@@ -1,9 +1,10 @@
 #include "conf.h"
 
-// Долбоебы преопределили IPADDR_NONE, нужно включить раньше
-#include <WiFi.h>
-
+#include "esp32-hal.h"
 #include "lib.h"
+#include "lib/i2c_tools.h"
+#include "lib/macro.h"
+#include "lib/mqtt.h"
 
 static const char *TAG = "main";
 
@@ -18,14 +19,8 @@ void setup() {
     PKLOGI("built on " __DATE__ " at " __TIME__);
 
 #if CONF_WIFI_ENABLED
-    WiFi.begin(CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
-    PKLOGI("connecting to %s...", CONF_WIFI_SSID);
-    PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-    }
-    PKLOGI("WiFi connection established");
-    PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
+    if (!pk_wifi_connect())
+        PKLOGE("failed to connect to wifi");
 #endif // CONF_WIFI_ENABLED
 
 #if CONF_SYSMON_ENABLED
@@ -46,9 +41,17 @@ void setup() {
         PKLOGE("failed to start ota server");
 #endif
 
+#if CONF_MQTT_ENABLED
+    if (!mqtt_connect())
+        PKLOGE("failed to connect mqtt");
+#endif
+
+    pk_i2c_begin(SW_PCA9547);
+    pk_i2c_scan();
+
     PKLOGI("setup() finished");
 }
 
 void loop() {
-    delay(10000);
+    vTaskDelete(NULL);
 }

@@ -9,7 +9,7 @@
 #define LOG_TASK_STACK_SIZE 2048
 #define LOG_TASK_PRIORITY 24
 
-const char *TAG = "sysmon";
+static const char *TAG = "sysmon";
 
 static void log_task(void *);
 static bool idle_hook();
@@ -96,8 +96,8 @@ void sysmon_dump_heap_stat() {
 
     float total_f, used_f;
     char total_s[MISC_BISUFFIX_SIZE], used_s[MISC_BISUFFIX_SIZE];
-    misc_hum_size(total_heap, &total_f, total_s);
-    misc_hum_size(used_heap, &used_f, used_s);
+    pk_hum_size(total_heap, &total_f, total_s);
+    pk_hum_size(used_heap, &used_f, used_s);
 
     float mem_usage = 100.f * used_f / total_f;
     PKLOGI("heap %.2f%sB/%.2f%sB (%.1f%%)", used_f, used_s, total_f, total_s, mem_usage);
