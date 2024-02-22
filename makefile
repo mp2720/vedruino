@@ -1,6 +1,6 @@
 SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.hpp' -o -name '*.h')
 
-CONF=default_config.ini
+CONF=config.ini
 
 SKETCH=$(shell tools/config.py ${CONF} -g arduino:sketch_name)
 PORT=$(shell tools/config.py ${CONF} -g board:port)
@@ -13,7 +13,7 @@ BIN_PATH=build/${SKETCH}.ino.bin
 
 ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maximum_size=1966080
 
-TOOLCHAIN_PATH=$(shell tools/config.py -g arduino:toolchain_path)
+TOOLCHAIN_PATH=$(shell tools/config.py ${CONF} -g arduino:toolchain_path)
 
 src/conf.h: config.ini
 	tools/config.py ${CONF} -c

@@ -2,9 +2,8 @@
 
 import configparser
 import argparse
+import typing
 import sys
-
-from typing import NoReturn
 
 DEFAULT_CONF_PATH = "./config_default.ini"
 
@@ -16,7 +15,7 @@ class Colors:
     reset = '\033[0m'
 
 
-def error(msg: str) -> NoReturn:
+def error(msg: str) -> typing.NoReturn:
     print(Colors.error + msg + Colors.reset, file=sys.stderr)
     exit(1)
 
@@ -117,16 +116,21 @@ def add_section_comm(section: str):
     conf_h += f"\n// [{section}]\n\n"
 
 
-def add_module(section: str, key_types: dict[str, str]):
+def add_module_start(section: str) -> bool:
     add_section_comm(section)
     enabled = is_module_enabled(section)
     if not enabled:
         print(f"{section} {Colors.disabled}DISABLED{Colors.reset}")
         add_def(section, "enabled", value=False)
+        return False
     else:
         print(f"{section} {Colors.enabled}ENABLED{Colors.reset}")
         add_def(section, "enabled", type_="bool")
+        return True
 
+
+def add_module(section: str, key_types: dict[str, str]):
+    enabled = add_module_start(section)
     for k, t in key_types.items():
         if enabled:
             add_def(section, k, type_=t)
@@ -150,7 +154,6 @@ if args.gen_header:
         add_def("log", "print_file_line", type_='bool')
         add_def("log", "print_time", type_='bool')
         add_def("log", "print_color", type_='bool')
-        add_def("log", "uart_baud", type_='int')
 
         add_module('mdns', {
             'hostname': 'str'
@@ -158,14 +161,14 @@ if args.gen_header:
 
         add_module('ip', {})
 
-        add_module("netlog", {
-            "tcp_port": 'int',
-            "write_uart": 'bool'
-        })
-
         add_module("wifi", {
             'ssid': 'str',
             'password': 'str'
+        })
+
+        add_module("netlog", {
+            'max_clients': 'int',
+            'buf_size': 'int',
         })
 
         add_module("mqtt", {

@@ -11,14 +11,14 @@ EXTERNC_BEGIN
 // === log ===
 
 extern FILE *pk_log_uartout;
-void pk_log_init();
+void pk_log_init(void);
 
 #ifdef PK_LIB_INCLUDE_FROM_APP
 #define PKLOG_LEVEL CONF_LOG_APP_LEVEL
 #else
 #define PKLOG_LEVEL CONF_LOG_LIB_LEVEL
 #endif // PK_LIB_INCLUDE_FROM_APP
-       
+
 #include "log_defs.h"
 
 // === ip ===
@@ -34,7 +34,7 @@ bool pk_mdns_init();
 // === netlog ===
 
 #if CONF_NETLOG_ENABLED
-bool pk_netlog_init(void);
+void pk_netlog_init(void);
 #endif // CONF_NETLOG_ENABLED
 
 // === ota ===

@@ -21,7 +21,7 @@ typedef pkUdpHandle_t pkUdpClient_t;
 #define PK_SOCKERR (-1)
 // 16 for ip address, 1 for ':', 6 for 'port', 1 for zero
 #define PK_IP_ADDR_STR_LEN (16 + 1 + 6 + 1)
-#define PK_IP_BROADCAST_ADDR 0xffffffff
+#define PK_IP_BCAST_ADDR 0xffffffff
 
 typedef struct pkIpAddr {
     uint32_t addr;
