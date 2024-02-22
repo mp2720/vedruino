@@ -33,8 +33,7 @@ void setup() {
 #endif // CONF_MDNS_ENABLED
 
 #if CONF_NETLOG_ENABLED
-    if (!pk_netlog_init())
-        PKLOGE("failed to init netlog");
+    pk_netlog_init();
 #endif // CONF_NETLOG_ENABLED
 
 #if CONF_OTA_ENABLED

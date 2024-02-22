@@ -13,7 +13,7 @@ BIN_PATH=build/${SKETCH}.ino.bin
 
 ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maximum_size=1966080
 
-TOOLCHAIN_PATH=$(shell tools/config.py -g arduino:toolchain_path)
+TOOLCHAIN_PATH=$(shell tools/config.py ${CONF} -g arduino:toolchain_path)
 
 src/conf.h: config.ini
 	tools/config.py ${CONF} -c
