@@ -5,7 +5,7 @@ CONF=./config.ini
 SKETCH=$(shell tools/config.py ${CONF} -g arduino:sketch_name)
 PORT=$(shell tools/config.py ${CONF} -g board:port)
 FQBN=$(shell tools/config.py ${CONF} -g board:fqbn)
-BAUD=$(shell tools/config.py ${CONF} -g log:uart_baud)
+BAUD=115200
 BOARD_IP=$(shell tools/config.py ${CONF} -g board:ip)
 OTA_PORT=$(shell tools/config.py ${CONF} -g tcp_ota:port)
 
