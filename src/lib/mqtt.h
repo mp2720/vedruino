@@ -27,33 +27,33 @@ extern esp_mqtt_client_handle_t pk_mqtt_client;
 
 // Тип функции вызываемой при получении сообщения на подписанный топик
 //(char * topic, char * data, int data_size)
-typedef void (*callback_t)(char *, char *, int);
+typedef void (*pkCallback_t)(char *, char *, int);
 
 // Структура топика
 typedef struct {
     const char *name;    // имя топика
-    callback_t callback; // функция которая будет вызвана при получении сообщения на данный топик
+    pkCallback_t callback; // функция которая будет вызвана при получении сообщения на данный топик
     int qos;             // quality of service
-} pk_topic_t;
+} pkTopic_t;
 
 // Подключиться к брокеру
-bool mqtt_connect();
+bool pk_mqtt_connect();
 
 // Отписывается от всех и подписывается на len топиков из массива topics. Сортирует переданные
 // топики
-bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len);
+bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len);
 
 // Отписаться от топика
-bool mqtt_unsubscribe_topic(const char *name);
+bool pk_mqtt_unsubscribe_topic(const char *name);
 
 // Отправить сообщение, если data_size равно 0, то считает длинну строки
-bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain);
+bool pk_mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain);
 
 // Выключить mqtt и освободить ресурсы
-bool mqtt_delete();
+bool pk_mqtt_delete();
 
 // Приостановить работу mqtt
-bool mqtt_stop();
+bool pk_mqtt_stop();
 
 // Возобновить работу mqtt
-bool mqtt_resume();
+bool pk_mqtt_resume();

@@ -20,20 +20,20 @@ password=(str)
 Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-bool mqtt_connect();
+bool pk_mqtt_connect();
 ```
 ## Подписаться
 
 Получает массив топиков вида
 ```C
 //void callback(char * topic, char * data, int data_size) {}
-typedef void (*callback_t)(char *, char *, int); 
+typedef void (*pkCallback_t)(char *, char *, int); 
 
 typedef struct {
     const char * name;    //имя топика
     callback_t callback;  //функция которая будет вызвана при получении сообщения на данный топик    
     int qos;              //quality of service
-} pk_topic_t;
+} pkTopic_t;
 
 ```
 и размер данного массива. Отписывается от старых и подписывается на новые.
@@ -43,7 +43,7 @@ typedef struct {
 Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len); 
+bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len); 
 ```
 
 ## Отписаться
@@ -51,7 +51,7 @@ bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len);
 
 Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-bool mqtt_unsubscribe_topic(const char * name);
+bool pk_mqtt_unsubscribe_topic(const char * name);
 ```
 
 ## Отправить
@@ -64,19 +64,19 @@ bool mqtt_unsubscribe_topic(const char * name);
 
 Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-bool mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
+bool pk_mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 ```
 ## Отключиться
 Отписывается от текущего брокера и освобождает ресурсы
 ```C
-bool mqtt_disconnect(); 
+bool pk_mqtt_disconnect(); 
 ```
 
 ## Остановить/возобновить
 Останавливает и запускает вновь работу mqtt
 ```C
-bool mqtt_stop(); 
-bool mqtt_resume(); 
+bool pk_mqtt_stop(); 
+bool pk_mqtt_resume(); 
 ```
 ## События
 Для ожидания подтверждения некоторых событий MQTT используйте EventGroup из freertos

@@ -27,17 +27,17 @@ esp_mqtt_client_handle_t pk_mqtt_client = NULL;
 EventGroupHandle_t pk_mqtt_event_group = NULL;
 
 static struct {
-    pk_topic_t *pairs;
+    pkTopic_t *pairs;
     int size;
 } subs_topics = {.pairs = NULL, .size = 0};
 
 static SemaphoreHandle_t topics_mutex;
 
 static int topic_pair_cmp(const void *a, const void *b) {
-    return strcmp(((const pk_topic_t *)a)->name, ((const pk_topic_t *)b)->name);
+    return strcmp(((const pkTopic_t *)a)->name, ((const pkTopic_t *)b)->name);
 }
 
-bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
+bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len) {
     int res = 1;
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         for (int i = 0; i < subs_topics.size; i++) { // отписка от предыдущих
@@ -48,7 +48,7 @@ bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
         }
         subs_topics.pairs = topics;
         subs_topics.size = len;
-        qsort(subs_topics.pairs, subs_topics.size, sizeof(pk_topic_t), topic_pair_cmp);
+        qsort(subs_topics.pairs, subs_topics.size, sizeof(pkTopic_t), topic_pair_cmp);
 
         for (int i = 0; i < subs_topics.size; i++) {
             if (esp_mqtt_client_subscribe(pk_mqtt_client, (char *)subs_topics.pairs[i].name,
@@ -65,12 +65,12 @@ bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
     return res;
 }
 
-static pk_topic_t *find_callback(const char *name) {
+static pkTopic_t *find_callback(const char *name) {
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        pk_topic_t search_tmp_topic = {.name = name};
-        pk_topic_t *pair =
-            (pk_topic_t *)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size,
-                                  sizeof(pk_topic_t), topic_pair_cmp);
+        pkTopic_t search_tmp_topic = {.name = name};
+        pkTopic_t *pair =
+            (pkTopic_t *)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size,
+                                  sizeof(pkTopic_t), topic_pair_cmp);
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
@@ -79,7 +79,7 @@ static pk_topic_t *find_callback(const char *name) {
     return NULL;
 }
 
-bool mqtt_unsubscribe_topic(const char *name) {
+bool pk_mqtt_unsubscribe_topic(const char *name) {
     if (esp_mqtt_client_unsubscribe(pk_mqtt_client, name) == -1) {
         PKLOGE("esp_mqtt_client_unsubscribe() error");
         return 0;
@@ -87,7 +87,7 @@ bool mqtt_unsubscribe_topic(const char *name) {
     return 1;
 }
 
-bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain) {
+bool pk_mqtt_publish(const char *topic, const char *data, size_t data_size, int qos, bool retain) {
     if (!data_size)
         data_size = strlen(data);
 
@@ -100,7 +100,7 @@ bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos
 }
 
 struct mqtt_callback_item {
-    callback_t callback;
+    pkCallback_t callback;
     char *topic;
     char *data;
     int data_size;
@@ -173,7 +173,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
         memcpy(topic_copy, event->topic, event->topic_len);
         topic_copy[event->topic_len] = '\0';
 
-        pk_topic_t *pair = find_callback(topic_copy);
+        pkTopic_t *pair = find_callback(topic_copy);
         if (!pair) {
             PKLOGW("Callback for \"%s\" topic not found", topic_copy);
             free(topic_copy);
@@ -219,7 +219,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     }
 }
 
-bool mqtt_connect() {
+bool pk_mqtt_connect() {
     cb_task.queue.handle = xQueueCreate(CB_TASK_QUEUE_LENGTH, sizeof(struct mqtt_callback_item));
     if (!cb_task.queue.handle) {
         PKLOGE("MQTT queue create error");
@@ -274,7 +274,7 @@ bool mqtt_connect() {
     return 1;
 }
 
-bool mqtt_delete() {
+bool pk_mqtt_delete() {
     esp_err_t res = esp_mqtt_client_disconnect(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_disconnect error: %d - %s", (int)res, esp_err_to_name(res));
@@ -296,7 +296,7 @@ bool mqtt_delete() {
     return 1;
 }
 
-bool mqtt_stop() {
+bool pk_mqtt_stop() {
     if (!pk_mqtt_client) {
         PKLOGW("Nothing to stop");
         return 0;
@@ -309,7 +309,7 @@ bool mqtt_stop() {
     return 1;
 }
 
-bool mqtt_resume() {
+bool pk_mqtt_resume() {
     if (!pk_mqtt_client) {
         PKLOGW("Nothing to resume");
         return 0;

@@ -9,10 +9,10 @@ typedef enum {
     SW_NONE = 0,  //нет мультиплексора
     SW_PCA9547,   //смотреть на плате
     SW_PW548A,    //смотреть на плате
-} i2c_switcher_t;
+} pkI2cSwitcher_t;
 
 //инициализация инструментов и Wire.begin()
-void pk_i2c_begin(i2c_switcher_t switcher);
+void pk_i2c_begin(pkI2cSwitcher_t switcher);
 ```
 
 ## Работа с I2C

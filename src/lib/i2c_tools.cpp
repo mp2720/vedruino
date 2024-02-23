@@ -10,9 +10,9 @@ static QueueHandle_t current_i2c_line = NULL; // очередь длинной 1
 #define I2C_MAX_WAIT_MS pdMS_TO_TICKS(1000)
 
 static const char *TAG = "i2c_tools";
-static pk_i2c_switcher_t i2c_switcher = PK_SW_NONE;
+static pkI2cSwitcher_t i2c_switcher = PK_SW_NONE;
 
-void pk_i2c_begin(pk_i2c_switcher_t switcher) {
+void pk_i2c_begin(pkI2cSwitcher_t switcher) {
     i2c_switcher = switcher;
 
     pk_i2c_mutex = xSemaphoreCreateRecursiveMutex();
@@ -89,7 +89,6 @@ void pk_i2c_switch(uint8_t i2c_line) {
     }
 
     pk_i2c_lock();
-
     Wire.beginTransmission(I2C_HUB_ADDR);
 
     if (i2c_switcher == PK_SW_PCA9547) {
@@ -101,13 +100,14 @@ void pk_i2c_switch(uint8_t i2c_line) {
     }
 
     uint8_t res = Wire.endTransmission();
+    pk_i2c_unlock();
     if (res != 0) {
         PKLOGE("Switching transission fail: %u", res);
     } else {
         pk_i2c_set_line(i2c_line);
     }
 
-    pk_i2c_unlock();
+    
     return;
 }
 
