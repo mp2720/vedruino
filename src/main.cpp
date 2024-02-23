@@ -2,9 +2,7 @@
 
 #include "esp32-hal.h"
 #include "lib.h"
-#include "lib/i2c_tools.h"
-#include "lib/macro.h"
-#include "lib/mqtt.h"
+#include "Wire.h"
 
 static const char *TAG = "main";
 
@@ -47,8 +45,11 @@ void setup() {
         PKLOGE("failed to connect mqtt");
 #endif
 
-    pk_i2c_begin(SW_PCA9547);
-    pk_i2c_scan();
+    pk_i2c_begin(SW_NONE);
+    Wire.setClock(100000L);
+    delay(100);
+    //pk_i2c_scan();
+
 
     PKLOGI("setup() finished");
 }
