@@ -3,8 +3,10 @@
 
 // Конфиг включен, но здесь из него не берутся параметры уровня логов.
 #include "../conf.h"
-// Для вывода времени (только если log:print_time=true)
+
+#if CONF_LOG_PRINT_TIME
 #include <esp_timer.h>
+#endif // CONF_LOG_PRINT_TIME
 
 #ifndef _PK_LOG_H
 #define _PK_LOG_H
@@ -49,7 +51,7 @@
 #else
 #define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
     _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt     \
-    _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
+    _PKLOG_CLR_R "\n", tag, ##__VA_ARGS__
 #endif // CONF_LOG_PRINT_TIME
 // clang-format on
 
