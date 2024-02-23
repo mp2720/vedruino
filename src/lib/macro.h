@@ -1,7 +1,11 @@
 #pragma once
 
+#include <assert.h>
+#include <esp_attr.h>
+
 #define UNUSED __attribute__((unused))
 #define PACKED __attribute__((__packed__))
+#define NOINIT __NOINIT_ATTR
 
 #ifdef __cplusplus
 #define EXTERNC_BEGIN extern "C" {
@@ -18,3 +22,5 @@
 
 #define PK_STRINGIZE(x) _PK_STRINGIZE2(x)
 #define _PK_STRINGIZE2(x) #x
+
+#define PK_ASSERT(x) assert(x)
