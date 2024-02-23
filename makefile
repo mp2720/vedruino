@@ -11,15 +11,13 @@ OTA_PORT=$(shell tools/config.py ${CONF} -g tcp_ota:port)
 
 BIN_PATH=build/${SKETCH}.ino.bin
 
-ARDUINO_COMPILE_FLAGS=--build-properties build.partitions=min_spiffs,upload.maximum_size=1966080
-
 TOOLCHAIN_PATH=$(shell tools/config.py ${CONF} -g arduino:toolchain_path)
 
 src/conf.h: config.ini
 	tools/config.py ${CONF} -c
  
 build/${SKETCH}.ino.bin: $(SRC)
-	arduino-cli compile ${ARDUINO_COMPILE_FLAGS} --build-path ./build
+	arduino-cli compile --build-path ./build
 
 .PHONY: conf clean cleanall setup build updcc flash monitor ota all
 
