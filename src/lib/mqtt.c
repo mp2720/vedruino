@@ -22,7 +22,7 @@
 
 static const char *TAG = "mqtt";
 
-esp_mqtt_client_handle_t mqtt_client = NULL;
+esp_mqtt_client_handle_t pk_mqtt_client = NULL;
 
 EventGroupHandle_t pk_mqtt_event_group = NULL;
 
@@ -41,7 +41,7 @@ bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
     int res = 1;
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         for (int i = 0; i < subs_topics.size; i++) { // отписка от предыдущих
-            if (esp_mqtt_client_unsubscribe(mqtt_client, subs_topics.pairs[i].name) < 0) {
+            if (esp_mqtt_client_unsubscribe(pk_mqtt_client, subs_topics.pairs[i].name) < 0) {
                 PKLOGE("esp_mqtt_client_unsubscribe() error");
                 res = 0;
             }
@@ -51,7 +51,7 @@ bool mqtt_set_subscribed_topics(pk_topic_t topics[], int len) {
         qsort(subs_topics.pairs, subs_topics.size, sizeof(pk_topic_t), topic_pair_cmp);
 
         for (int i = 0; i < subs_topics.size; i++) {
-            if (esp_mqtt_client_subscribe(mqtt_client, (char *)subs_topics.pairs[i].name,
+            if (esp_mqtt_client_subscribe(pk_mqtt_client, (char *)subs_topics.pairs[i].name,
                                           subs_topics.pairs[i].qos) < 0) {
                 PKLOGE("esp_mqtt_client_subscribe() error");
                 res = 0;
@@ -80,7 +80,7 @@ static pk_topic_t *find_callback(const char *name) {
 }
 
 bool mqtt_unsubscribe_topic(const char *name) {
-    if (esp_mqtt_client_unsubscribe(mqtt_client, name) == -1) {
+    if (esp_mqtt_client_unsubscribe(pk_mqtt_client, name) == -1) {
         PKLOGE("esp_mqtt_client_unsubscribe() error");
         return 0;
     }
@@ -91,7 +91,7 @@ bool mqtt_publish(const char *topic, const char *data, size_t data_size, int qos
     if (!data_size)
         data_size = strlen(data);
 
-    int res = esp_mqtt_client_publish(mqtt_client, topic, data, data_size, qos, (int)retain);
+    int res = esp_mqtt_client_publish(pk_mqtt_client, topic, data, data_size, qos, (int)retain);
     if (res < 0) {
         PKLOGE("esp_mqtt_client_publish() error");
         return 0;
@@ -243,20 +243,20 @@ bool mqtt_connect() {
     mqtt_cfg.username = CONF_MQTT_USER;
     mqtt_cfg.password = CONF_MQTT_PASSWORD;
 
-    mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
-    if (!mqtt_client) {
+    pk_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+    if (!pk_mqtt_client) {
         PKLOGE("esp_mqtt_client_init() error");
         return 0;
     }
 
     esp_err_t res1 = esp_mqtt_client_register_event(
-        mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+        pk_mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     if (res1 != ESP_OK) {
         PKLOGE("esp_mqtt_client_register_event() error: %d - %s", (int)res1, esp_err_to_name(res1));
         return 0;
     }
 
-    esp_err_t res = esp_mqtt_client_start(mqtt_client);
+    esp_err_t res = esp_mqtt_client_start(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_start() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
@@ -275,11 +275,11 @@ bool mqtt_connect() {
 }
 
 bool mqtt_delete() {
-    esp_err_t res = esp_mqtt_client_disconnect(mqtt_client);
+    esp_err_t res = esp_mqtt_client_disconnect(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_disconnect error: %d - %s", (int)res, esp_err_to_name(res));
     }
-    res = esp_mqtt_client_destroy(mqtt_client);
+    res = esp_mqtt_client_destroy(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_destroy error: %d - %s", (int)res, esp_err_to_name(res));
     }
@@ -288,7 +288,7 @@ bool mqtt_delete() {
     vEventGroupDelete(pk_mqtt_event_group);
     vSemaphoreDelete(topics_mutex);
 
-    mqtt_client = NULL;
+    pk_mqtt_client = NULL;
     cb_task.task.handle = NULL;
     cb_task.queue.handle = NULL;
     pk_mqtt_event_group = NULL;
@@ -297,11 +297,11 @@ bool mqtt_delete() {
 }
 
 bool mqtt_stop() {
-    if (!mqtt_client) {
+    if (!pk_mqtt_client) {
         PKLOGW("Nothing to stop");
         return 0;
     }
-    esp_err_t res = esp_mqtt_client_stop(mqtt_client);
+    esp_err_t res = esp_mqtt_client_stop(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_stop fail: %d - %s", res, esp_err_to_name(res));
         return 0;
@@ -310,11 +310,11 @@ bool mqtt_stop() {
 }
 
 bool mqtt_resume() {
-    if (!mqtt_client) {
+    if (!pk_mqtt_client) {
         PKLOGW("Nothing to resume");
         return 0;
     }
-    esp_err_t res = esp_mqtt_client_start(mqtt_client);
+    esp_err_t res = esp_mqtt_client_start(pk_mqtt_client);
     if (res != ESP_OK) {
         PKLOGE("esp_mqtt_client_start fail: %d - %s", res, esp_err_to_name(res));
         return 0;

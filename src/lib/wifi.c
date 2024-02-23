@@ -61,16 +61,16 @@ bool pk_wifi_connect() {
         PKLOGE("Password to long: %u/64 bytes", strlen(CONF_WIFI_SSID));
         return 0;
     }
-
-    esp_err_t res = nvs_flash_init();
+    /*
+    esp_err_t nvres = nvs_flash_init();
     if (res != ESP_OK) {
-        PKLOGE("nvs_flash_init() error: %d - %s", (int)res, esp_err_to_name(res));
+        PKLOGE("nvs_flash_init() error: %d - %s", (int)nvres, esp_err_to_name(nvres));
         return 0;
     }
-
+    */
     s_wifi_event_group = xEventGroupCreate();
 
-    res = esp_netif_init();
+    esp_err_t res = esp_netif_init();
     if (res != ESP_OK) {
         PKLOGE("esp_netif_init() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
@@ -88,6 +88,7 @@ bool pk_wifi_connect() {
     }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    cfg.nvs_enable = 0;
 
     res = esp_wifi_init(&cfg);
     if (res != ESP_OK) {
@@ -172,6 +173,6 @@ bool pk_wifi_connect() {
         PKLOGE("esp_wifi_set_ps() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-
+    xEventGroupWaitBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
     return 1;
 }

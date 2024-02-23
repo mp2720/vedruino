@@ -23,7 +23,7 @@ extern EventGroupHandle_t pk_mqtt_event_group;
 #define MQTT_DATA_BIT (1 << 5)
 
 // handle для использования других инструментов
-extern esp_mqtt_client_handle_t mqtt_client;
+extern esp_mqtt_client_handle_t pk_mqtt_client;
 
 // Тип функции вызываемой при получении сообщения на подписанный топик
 //(char * topic, char * data, int data_size)

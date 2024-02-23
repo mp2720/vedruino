@@ -93,8 +93,8 @@ extern EventGroupHandle_t pk_mqtt_event_group;
 ```
 Отправка с ожиданием:
 ```C
-xEventGroupClearBits(mqtt_event_group, MQTT_PUBLISHED_BIT)
+xEventGroupClearBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT)
 mqtt_publish(topic, data, 0, 2, 0);
-xEventGroupWaitBits(mqtt_event_group, MQTT_PUBLISHED_BIT, pdTrue, pdFALSE, portMAX_DELAY);
+xEventGroupWaitBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
 ```
 

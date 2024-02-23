@@ -46,7 +46,7 @@ void setup() {
         PKLOGE("failed to connect mqtt");
 #endif
 
-    pk_i2c_begin(SW_PCA9547);
+    pk_i2c_begin(PK_SW_NONE);
     pk_i2c_scan();
 
     PKLOGI("setup() finished");
