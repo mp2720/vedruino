@@ -192,6 +192,8 @@ if args.gen_header:
             'dualcore': 'bool',
         })
 
+        add_module('json', {})
+
         deps = {
             'ip': ['wifi'],
             'netlog': ['ip'],
