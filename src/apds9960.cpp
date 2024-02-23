@@ -3,7 +3,7 @@
 #include "lib.h"
 #include "lib/i2c_tools.h"
 
-Adafruit_APDS9960 apds9960;
+static Adafruit_APDS9960 apds9960;
 
 static const char *TAG = "apds9960";
 
@@ -17,7 +17,7 @@ void apds9960_init() {
     pk_i2c_unlock();
 }
 
-apds9960_data_t apds9960_get() {
+apds9960_data_t apds9960_get_raw() {
     pk_i2c_lock();
     apds9960_data_t result;
 

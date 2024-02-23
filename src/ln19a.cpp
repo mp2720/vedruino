@@ -52,7 +52,7 @@ void ln19a_init() {
     PKLOGI("ln19a line sensor initialized");
 }
 
-ln19a_data_t ln19a_get() {
+ln19a_data_t ln19a_get_raw() {
     int adc_sensor_data[38] = {0};
     pk_i2c_lock();
 
@@ -97,9 +97,18 @@ ln19a_data_t ln19a_get() {
     pk_i2c_unlock();
 
     ln19a_data_t result;
-    for (int i = 0; i <= 19; i++) {
+    for (int i = 0; i <= 18; i++) {
         result.val[i] = (adc_sensor_data[36-2*i] << 8) + adc_sensor_data[37-2*i];
     }
     return result;
 }
-//00000001
+
+float ln19a_get_line(ln19a_data_t data) {
+    float sum_all = 0;
+    float sum_vals = 0;
+    for (int i = 0; i <= 18; i++) {
+        sum_all+=i*data.val[i];
+        sum_vals+=data.val[i];
+    }
+    return (sum_all/sum_vals)/9 - 1;
+}

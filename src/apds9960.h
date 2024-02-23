@@ -13,4 +13,4 @@ typedef struct {
 
 void apds9960_init();
 
-apds9960_data_t apds9960_get();
+apds9960_data_t apds9960_get_raw();
