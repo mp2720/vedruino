@@ -39,7 +39,7 @@ bool pk_mdns_init(void) {
         return false;
     }
 
-    err = mdns_hostname_set(CONF_MDNS_HOSTNAME);
+    err = mdns_hostname_set(hostname);
     if (err != ESP_OK) {
         PKLOGE("mdns_hostname_set() %s", esp_err_to_name(err));
         return false;
