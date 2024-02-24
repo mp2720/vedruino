@@ -4,13 +4,14 @@
 
 ## Подключиться
 Подключение к брокеру, информация о брокере берётся из конфига вида:
-```
+```ini
 [mqtt]
 enabled=(bool)
 host=(str)
 port=(int)
 user=(str)
 password=(str)
+retry=(int)
 ```
 * `host` - имя хоста
 * `port` - порт хоста
@@ -83,13 +84,13 @@ bool pk_mqtt_resume();
 ```C
 // флаги собыйтий mqtt
 extern EventGroupHandle_t pk_mqtt_event_group;
-#define MQTT_CONNECTED_BIT (1 << 0)
-#define MQTT_DISCONNECTED_BIT (1 << 1)
-#define MQTT_PUBLISHED_BIT (1 << 2)
-#define MQTT_SUBSCRIBED_BIT (1 << 3)
-#define MQTT_UNSUBSCRIBED_BIT (1 << 4)
-#define MQTT_DATA_BIT (1 << 5)
-
+#define PK_MQTT_CONNECTED_BIT (1 << 0)
+#define PK_MQTT_DISCONNECTED_BIT (1 << 1)
+#define PK_MQTT_PUBLISHED_BIT (1 << 2)
+#define PK_MQTT_SUBSCRIBED_BIT (1 << 3)
+#define PK_MQTT_UNSUBSCRIBED_BIT (1 << 4)
+#define PK_MQTT_DATA_BIT (1 << 5)
+#define PK_MQTT_FAIL_BIT (1 << 6)
 ```
 Отправка с ожиданием:
 ```C

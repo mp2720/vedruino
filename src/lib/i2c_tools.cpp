@@ -33,8 +33,7 @@ void pk_i2c_begin(pkI2cSwitcher_t switcher) {
 }
 
 void pk_i2c_lock() {
-    BaseType_t res = xSemaphoreTakeRecursive(pk_i2c_mutex, I2C_MAX_WAIT_MS);
-    if (res != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pk_i2c_mutex, I2C_MAX_WAIT_MS) != pdTRUE) {
         PKLOGE("failed to take i2c_mutex");
     }
 }
@@ -62,7 +61,7 @@ static void pk_i2c_set_line(int line) {
         PKLOGE("failed to get i2c line from queqe");
         return;
     }
-    if (xQueueSend(current_i2c_line, &line, I2C_MAX_WAIT_MS)) {
+    if (xQueueSend(current_i2c_line, &line, I2C_MAX_WAIT_MS) != pdTRUE) {
         pk_i2c_unlock();
         PKLOGE("failed to send i2c line to queqe");
         return;
@@ -70,7 +69,7 @@ static void pk_i2c_set_line(int line) {
     pk_i2c_unlock();
 }
 
-void pk_i2c_switch(uint8_t i2c_line) {
+void pk_i2c_switch(int i2c_line) {
     const int I2C_HUB_ADDR = 0x70;
     const int EN_MASK = 0x08;
     const int MAX_CHANNEL = 0x08;
@@ -79,18 +78,16 @@ void pk_i2c_switch(uint8_t i2c_line) {
         PKLOGW("call pk_i2c_switch() without multiplexer");
         return;
     }
-    if (i2c_line >= MAX_CHANNEL) {
-        PKLOGE("i2c line out of range: %u", i2c_line);
-        return;
-    }
-
-    if (pk_i2c_get_line() == i2c_line) {
+    if (i2c_line >= MAX_CHANNEL || i2c_line < 0) {
+        PKLOGE("i2c line out of range 0-%d: %d", MAX_CHANNEL, i2c_line);
         return;
     }
 
     pk_i2c_lock();
+    if (pk_i2c_get_line() == i2c_line) {
+        return;
+    }
     Wire.beginTransmission(I2C_HUB_ADDR);
-
     if (i2c_switcher == PK_SW_PCA9547) {
         Wire.write(i2c_line | EN_MASK);
     } else if (i2c_switcher == PK_SW_PW548A) {
@@ -98,22 +95,17 @@ void pk_i2c_switch(uint8_t i2c_line) {
     } else {
         PKLOGE("Incorrect i2c_switcher");
     }
-
     uint8_t res = Wire.endTransmission();
-    pk_i2c_unlock();
     if (res != 0) {
         PKLOGE("Switching transission fail: %u", res);
     } else {
         pk_i2c_set_line(i2c_line);
     }
-
-    
-    return;
+    pk_i2c_unlock();
 }
 
 static void pk_i2c_scan_current_line() {
     pk_i2c_lock();
-
     PKLOGI("Start i2c scanning...");
     int devs_num = 0;
     for (int address = 8; address < 127; address++) {

@@ -131,38 +131,45 @@ static void mqtt_callback_task(UNUSED void *pvParameters) {
 
 static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_t base,
                                UNUSED int32_t event_id, void *event_data) {
+    
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
+    static int retry = 0;
     switch (event->event_id) {
 
     case MQTT_EVENT_CONNECTED: {
         PKLOGI("MQTT_EVENT_CONNECTED");
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_CONNECTED_BIT);
     } break;
 
     case MQTT_EVENT_DISCONNECTED: {
         PKLOGW("MQTT_EVENT_DISCONNECTED");
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_DISCONNECTED_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_DISCONNECTED_BIT);
+        if (retry < CONF_MQTT_RETRY) {
+            retry++;
+        } else {
+            xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_FAIL_BIT);
+        }
     } break;
 
     case MQTT_EVENT_SUBSCRIBED: {
         PKLOGV("MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_SUBSCRIBED_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_SUBSCRIBED_BIT);
     } break;
 
     case MQTT_EVENT_UNSUBSCRIBED: {
         PKLOGV("MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_UNSUBSCRIBED_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_UNSUBSCRIBED_BIT);
     } break;
 
     case MQTT_EVENT_PUBLISHED: {
         PKLOGV("MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_PUBLISHED_BIT);
     } break;
 
     case MQTT_EVENT_DATA: {
 
         PKLOGV("MQTT_EVENT_DATA: topic: \"%.*s\"", event->topic_len, event->topic);
-        xEventGroupSetBits(pk_mqtt_event_group, MQTT_DATA_BIT);
+        xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_DATA_BIT);
 
         char *topic_copy = (char *)malloc(event->topic_len + 1);
         if (!topic_copy) {
@@ -263,14 +270,17 @@ bool pk_mqtt_connect() {
     }
     PKLOGI("Connecting to %s:%d", CONF_MQTT_HOST, CONF_MQTT_PORT);
 
-    EventBits_t bits = xEventGroupWaitBits(pk_mqtt_event_group, MQTT_CONNECTED_BIT, pdFALSE,
+    EventBits_t bits = xEventGroupWaitBits(pk_mqtt_event_group, PK_MQTT_CONNECTED_BIT | PK_MQTT_FAIL_BIT, pdFALSE,
                                            pdFALSE, portMAX_DELAY);
-    if (bits & MQTT_CONNECTED_BIT) {
+    if (bits & PK_MQTT_CONNECTED_BIT) {
         PKLOGI("Connected to MQTT");
+    } else if (bits & PK_MQTT_FAIL_BIT) {
+        PKLOGE("Failed to connected to MQTT");
+        pk_mqtt_delete();
+        return 0;
     } else {
-        PKLOGE("UNEXPECTED EVENT");
+        PKLOGW("UNEXPECTED EVENT");
     }
-
     return 1;
 }
 

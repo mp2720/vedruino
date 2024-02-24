@@ -17,7 +17,7 @@ void pk_i2c_lock();
 void pk_i2c_unlock();
 
 //переключить мультиплексор на линию 3 - 7
-void pk_i2c_switch(uint8_t i2c_line);
+void pk_i2c_switch(int i2c_line);
 
 //сканирование датчиков
 void pk_i2c_scan();
