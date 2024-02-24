@@ -115,12 +115,6 @@ void pk_netlog_init() {
 
     PK_ASSERT(xTaskCreateStatic(&ctl_server_task, "pknetlog_ctl", CTL_SERVER_TASK_STACK_SIZE, NULL,
                                 CTL_SERVER_TASK_PRIORITY, server_task_stack, &server_task_st));
-
-    int i = 0;
-    while (1) {
-        PKLOGI("%d aaaaaaaaaaaaaaaaaaaaa", i++);
-        vTaskDelay(1000);
-    }
 }
 
 static void ctl_server_task(UNUSED void *p) {
