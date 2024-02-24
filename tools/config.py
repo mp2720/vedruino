@@ -180,7 +180,7 @@ if args.gen_header:
         })
 
         add_module("ota", {
-            'port': 'int',
+            'verify_md5': 'bool'
         })
 
         add_module("sysmon", {

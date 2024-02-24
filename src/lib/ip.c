@@ -142,7 +142,7 @@ ssize_t pk_tcp_send(pkTcpClient_t chd, const void *buf, size_t n) {
         if (st == SEND_RETRY)
             continue;
         else
-            return st == SEND_OK ? written : -1;
+            return st == SEND_OK ? written : PK_SOCKERR;
     }
 }
 
@@ -155,7 +155,7 @@ ssize_t pk_udp_send(pkUdpHandle_t hd, pkIpAddr_t addr, const void *buf, size_t n
         if (st == SEND_RETRY)
             continue;
         else
-            return st == SEND_OK ? written : -1;
+            return st == SEND_OK ? written : PK_SOCKERR;
     }
 }
 
@@ -189,7 +189,7 @@ ssize_t pk_tcp_recv(pkTcpClient_t chd, void *buf, size_t max_n) {
     ssize_t rd = read(chd, buf, max_n);
     if (rd < 0) {
         PKLOGE("read() %s", strerror(errno));
-        return -1;
+        return PK_SOCKERR;
     }
     return rd;
 }
@@ -200,7 +200,7 @@ ssize_t pk_udp_recv(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t max_n) 
     ssize_t rcv = recvfrom(hd, buf, max_n, 0, (struct sockaddr *)&saddr, &saddr_len);
     if (rcv < 0) {
         PKLOGE("recvfrom() %s", strerror(errno));
-        return -1;
+        return PK_SOCKERR;
     }
     return rcv;
 }

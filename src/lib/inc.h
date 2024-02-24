@@ -79,9 +79,9 @@ const char *pk_running_part_label();
 const char *pk_reset_reason_str();
 
 // Размер суффикса к количеству информации в байтах (null-terminated).
-#define MISC_BISUFFIX_SIZE 3
+#define PK_BISUFFIX_SIZE 3
 // Перевести размер информации в вид <множитель><суффикс>.
 // Используются суффиксы для степени 2 (Ki, Mi, ..., Yi).
-void pk_hum_size(size_t size, float *out_f, char out_suf[MISC_BISUFFIX_SIZE]);
+void pk_hum_size(float size, float *out_f, char out_suf[PK_BISUFFIX_SIZE]);
 
 EXTERNC_END
