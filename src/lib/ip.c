@@ -168,10 +168,14 @@ static bool handle_n_func(const char *func_name, ssize_t processed, size_t exp) 
 }
 
 bool pk_tcp_sendn(pkTcpClient_t chd, const void *buf, size_t n) {
-    ssize_t sent = pk_tcp_send(chd, buf, n);
-    if (sent < 0)
-        return false;
-    return handle_n_func("pk_tcp_send", sent, n);
+    size_t total_sent = 0;
+    while (total_sent < n) {
+        ssize_t sent = pk_tcp_send(chd, buf + total_sent, n - total_sent);
+        if (sent < 0)
+            return false;
+        total_sent += sent;
+    }
+    return handle_n_func("pk_tcp_send", total_sent, n);
 }
 
 bool pk_udp_sendn(pkUdpHandle_t chd, pkIpAddr_t addr, const void *buf, size_t n) {
@@ -202,10 +206,18 @@ ssize_t pk_udp_recv(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t max_n) 
 }
 
 bool pk_tcp_recvn(pkTcpClient_t chd, void *buf, size_t n) {
-    ssize_t rcv = pk_tcp_recv(chd, buf, n);
-    if (rcv < 0)
-        return false;
-    return handle_n_func("pk_tcp_recv", rcv, n);
+    size_t total_rcv = 0;
+    while (total_rcv < n) {
+        ssize_t rcv = pk_tcp_recv(chd, buf, n - total_rcv);
+        if (rcv < 0)
+            return false;
+
+        if (rcv == 0)
+            break;
+
+        total_rcv += (size_t)rcv;
+    }
+    return handle_n_func("pk_tcp_recv", total_rcv, n);
 }
 
 bool pk_udp_recvn(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t n) {
