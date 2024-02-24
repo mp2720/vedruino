@@ -205,7 +205,8 @@ static void bcast_boot_notify() {
 
     PK_ASSERT(ok_cnt >= BCAST_BOOT_NOTIFIES / 3);
 
-    PKLOGI("%d out of " PK_STRINGIZE(BCAST_BOOT_PORT) " boot messages sent successfully", ok_cnt);
+    PKLOGI("%d out of " PK_STRINGIZE(BCAST_BOOT_NOTIFIES) " boot messages sent successfully",
+           ok_cnt);
 
     pk_sock_close(chd);
 }
@@ -356,7 +357,6 @@ static int stdout_flush(UNUSED void *cookie, const char *buf, int n) {
     {
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
-        PKLOGV_UART("stdout_flush flush_with_shstack_n=%d, flush_with_shstack_buf_ptr=%p", n, buf);
         esp_execute_shared_stack_function(shstack_mutex, shstack, SHSTACK_SIZE,
                                           &flush_with_shstack);
     }
