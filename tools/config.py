@@ -155,9 +155,7 @@ if args.gen_header:
         add_def("log", "print_time", type_='bool')
         add_def("log", "print_color", type_='bool')
 
-        add_module('mdns', {
-            'hostname': 'str'
-        })
+        add_module('mdns', {})
 
         add_module('ip', {})
 
