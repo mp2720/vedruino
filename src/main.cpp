@@ -1,6 +1,8 @@
 #include "conf.h"
 
 #include "esp32-hal.h"
+#include "freertos/portmacro.h"
+#include "freertos/projdefs.h"
 #include "lib.h"
 #include "lib/i2c_tools.h"
 #include "lib/macro.h"

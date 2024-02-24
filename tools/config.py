@@ -174,7 +174,8 @@ if args.gen_header:
             'host': 'str',
             'port': 'int',
             'user': 'str',
-            'password': 'str'
+            'password': 'str',
+            'retry': 'int',
         })
 
         add_module("ota", {
