@@ -17,10 +17,10 @@ void apds9960_init() {
     pk_i2c_unlock();
 }
 
-apds9960_data_t apds9960_get_raw() {
+apds9960Data_t apds9960_get_raw() {
+    
+    apds9960Data_t result;
     pk_i2c_lock();
-    apds9960_data_t result;
-
     while (!apds9960.colorDataReady()) {
         delay(10);
     }

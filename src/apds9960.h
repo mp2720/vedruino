@@ -9,8 +9,8 @@ typedef struct {
     uint16_t green;
     uint16_t blue;
     uint16_t clear;
-} apds9960_data_t;
+} apds9960Data_t;
 
 void apds9960_init();
 
-apds9960_data_t apds9960_get_raw();
+apds9960Data_t apds9960_get_raw();

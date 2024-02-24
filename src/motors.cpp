@@ -67,8 +67,8 @@ void motor_set_l(float pwr) {
         pwm.setPWM(8, 0, 4096);
         pwm.setPWM(9, 0, pwmvalue);
     } else {
-        pwm.setPWM(8, 0, 4096);
-        pwm.setPWM(9, 0, pwmvalue);
+        pwm.setPWM(9, 0, 4096);
+        pwm.setPWM(8, 0, pwmvalue);
     }
     pk_i2c_unlock();
 }
