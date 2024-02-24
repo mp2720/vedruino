@@ -67,6 +67,13 @@ void sysmon_resume();
 
 #include "mqtt.h"
 
+// === json ===
+
+#if CONF_JSON_ENABLED
+#include "lwjson/lwjson.h"
+#include "lwjson/pk_lwjson.h"
+#endif // CONF_JSON_ENABLED
+
 // === misc ===
 
 const char *pk_running_part_label();

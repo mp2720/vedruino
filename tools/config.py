@@ -176,7 +176,8 @@ if args.gen_header:
             'host': 'str',
             'port': 'int',
             'user': 'str',
-            'password': 'str'
+            'password': 'str',
+            'retry': 'int',
         })
 
         add_module("ota", {
@@ -191,6 +192,8 @@ if args.gen_header:
             'monitor_tasks': 'bool',
             'dualcore': 'bool',
         })
+
+        add_module('json', {})
 
         deps = {
             'ip': ['wifi'],

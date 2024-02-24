@@ -4,13 +4,14 @@
 
 ## Подключиться
 Подключение к брокеру, информация о брокере берётся из конфига вида:
-```
+```ini
 [mqtt]
 enabled=(bool)
 host=(str)
 port=(int)
 user=(str)
 password=(str)
+retry=(int)
 ```
 * `host` - имя хоста
 * `port` - порт хоста
@@ -20,20 +21,20 @@ password=(str)
 Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-bool mqtt_connect();
+bool pk_mqtt_connect();
 ```
 ## Подписаться
 
 Получает массив топиков вида
 ```C
 //void callback(char * topic, char * data, int data_size) {}
-typedef void (*callback_t)(char *, char *, int); 
+typedef void (*pkCallback_t)(char *, char *, int); 
 
 typedef struct {
     const char * name;    //имя топика
     callback_t callback;  //функция которая будет вызвана при получении сообщения на данный топик    
     int qos;              //quality of service
-} pk_topic_t;
+} pkTopic_t;
 
 ```
 и размер данного массива. Отписывается от старых и подписывается на новые.
@@ -43,7 +44,7 @@ typedef struct {
 Возвращает __1__ при успехе и __0__ при неудаче
 
 ```C
-bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len); 
+bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len); 
 ```
 
 ## Отписаться
@@ -51,7 +52,7 @@ bool mqtt_set_subscribed_topics(fl_topic_t topics[], int len);
 
 Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-bool mqtt_unsubscribe_topic(const char * name);
+bool pk_mqtt_unsubscribe_topic(const char * name);
 ```
 
 ## Отправить
@@ -64,32 +65,32 @@ bool mqtt_unsubscribe_topic(const char * name);
 
 Возвращает __1__ при успехе и __0__ при неудаче
 ```C
-bool mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
+bool pk_mqtt_publish(const char * topic, const char * data, size_t data_size, int qos, bool retain); 
 ```
 ## Отключиться
 Отписывается от текущего брокера и освобождает ресурсы
 ```C
-bool mqtt_disconnect(); 
+bool pk_mqtt_disconnect(); 
 ```
 
 ## Остановить/возобновить
 Останавливает и запускает вновь работу mqtt
 ```C
-bool mqtt_stop(); 
-bool mqtt_resume(); 
+bool pk_mqtt_stop(); 
+bool pk_mqtt_resume(); 
 ```
 ## События
 Для ожидания подтверждения некоторых событий MQTT используйте EventGroup из freertos
 ```C
 // флаги собыйтий mqtt
 extern EventGroupHandle_t pk_mqtt_event_group;
-#define MQTT_CONNECTED_BIT (1 << 0)
-#define MQTT_DISCONNECTED_BIT (1 << 1)
-#define MQTT_PUBLISHED_BIT (1 << 2)
-#define MQTT_SUBSCRIBED_BIT (1 << 3)
-#define MQTT_UNSUBSCRIBED_BIT (1 << 4)
-#define MQTT_DATA_BIT (1 << 5)
-
+#define PK_MQTT_CONNECTED_BIT (1 << 0)
+#define PK_MQTT_DISCONNECTED_BIT (1 << 1)
+#define PK_MQTT_PUBLISHED_BIT (1 << 2)
+#define PK_MQTT_SUBSCRIBED_BIT (1 << 3)
+#define PK_MQTT_UNSUBSCRIBED_BIT (1 << 4)
+#define PK_MQTT_DATA_BIT (1 << 5)
+#define PK_MQTT_FAIL_BIT (1 << 6)
 ```
 Отправка с ожиданием:
 ```C

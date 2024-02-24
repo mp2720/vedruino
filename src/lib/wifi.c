@@ -131,7 +131,7 @@ bool pk_wifi_connect() {
         PKLOGE("esp_wifi_set_config() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-
+    
     res = esp_wifi_start();
     if (res != ESP_OK) {
         PKLOGE("esp_wifi_start() error: %d - %s", (int)res, esp_err_to_name(res));
@@ -173,6 +173,6 @@ bool pk_wifi_connect() {
         PKLOGE("esp_wifi_set_ps() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-    xEventGroupWaitBits(pk_mqtt_event_group, MQTT_PUBLISHED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+
     return 1;
 }

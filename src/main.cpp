@@ -1,6 +1,8 @@
 #include "conf.h"
 
 #include "esp32-hal.h"
+#include "freertos/portmacro.h"
+#include "freertos/projdefs.h"
 #include "lib.h"
 #include "Wire.h"
 
@@ -40,7 +42,7 @@ void setup() {
 #endif
 
 #if CONF_MQTT_ENABLED
-    if (!mqtt_connect())
+    if (!pk_mqtt_connect())
         PKLOGE("failed to connect mqtt");
 #endif
 
