@@ -1,5 +1,6 @@
 #include "inc.h"
 
+#include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <soc/cpu.h>
 
@@ -15,13 +16,14 @@ void pk_log_init() {
     PK_ASSERT(pk_btrace_mutex);
 }
 
+// btrace.S
 void pk_btrace_get_start(uint32_t *pc, uint32_t *sp, uint32_t *next_pc);
 
 void pk_log_btrace(FILE *out) {
     uint32_t pc, sp, next_pc;
     pk_btrace_get_start(&pc, &sp, &next_pc);
     fputs("PKBTRACE START\n", out);
-    while (sp != 0) {
+    while (pc != 0) {
         fprintf(out, "PKBTRACE 0x%08x:0x%08x\n", esp_cpu_process_stack_pc(pc), sp);
         void *frame_base = (void *)sp;
         pc = next_pc;
