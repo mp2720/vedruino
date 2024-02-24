@@ -14,8 +14,7 @@ EXTERNC_BEGIN
 
 // === log ===
 
-extern FILE *pk_log_uartout;
-void pk_log_init(void);
+#include "log.h"
 
 #ifdef PK_LIB_INCLUDE_FROM_APP
 #define PKLOG_LEVEL CONF_LOG_APP_LEVEL
@@ -29,7 +28,7 @@ void pk_log_init(void);
 
 #if CONF_WIFI_ENABLED
 bool pk_wifi_connect();
-#endif //CONF_WIFI_ENABLED
+#endif // CONF_WIFI_ENABLED
 
 // === ip ===
 

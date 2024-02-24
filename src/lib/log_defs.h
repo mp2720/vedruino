@@ -4,6 +4,8 @@
 // Конфиг включен, но здесь из него не берутся параметры уровня логов.
 #include "../conf.h"
 
+#include "log.h"
+
 #if CONF_LOG_PRINT_TIME
 #include <esp_timer.h>
 #endif // CONF_LOG_PRINT_TIME
@@ -67,8 +69,27 @@
 #undef PKLOGE_UART_TAG
 
 #if PKLOG_LEVEL >= 1
+
+#if CONF_LOG_BTRACE_ON_ERROR
+#define PKLOGE_TAG(tag, fmt, ...)                                                                  \
+    do {                                                                                           \
+        PK_BTRACE_MUTEX_TAKE;                                                                      \
+        _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__);                                                \
+        pk_log_btrace(stdout);                                                                     \
+        PK_BTRACE_MUTEX_GIVE;                                                                      \
+    } while (0)
+#define PKLOGE_UART_TAG(tag, fmt, ...)                                                             \
+    do {                                                                                           \
+        PK_BTRACE_MUTEX_TAKE;                                                                      \
+        _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__);                                                  \
+        pk_log_btrace(stdout);                                                                     \
+        PK_BTRACE_MUTEX_GIVE;                                                                      \
+    } while (0)
+#else
 #define PKLOGE_TAG(tag, fmt, ...) _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__)
 #define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__)
+#endif // CONF_LOG_BTRACE_ON_ERROR
+
 #else
 #define PKLOGE_TAG(tag, fmt, ...) _PKLOG_NOP
 #define PKLOGE_UART_TAG(tag, fmt, ...) _PKLOG_NOP
