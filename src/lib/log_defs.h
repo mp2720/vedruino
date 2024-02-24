@@ -48,8 +48,8 @@
 // clang-format off
 #if CONF_LOG_PRINT_TIME
 #define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
-    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] (%d) " _PKLOG_CLR_##x fmt\
-    _PKLOG_CLR_R "\n", tag, (int)(esp_timer_get_time() / 1000), ##__VA_ARGS__
+    _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "(%d) [%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt\
+    _PKLOG_CLR_R "\n", (int)(esp_timer_get_time() / 1000), tag, ##__VA_ARGS__
 #else
 #define _PKLOGX_ARGS(x, tag, fmt, ...)                                                              \
     _PKLOG_CLR_##x _PKLOG_LETTER_##x " " _PKLOG_CLR_R "[%s" _PKLOG_LINE "] " _PKLOG_CLR_##x fmt     \
