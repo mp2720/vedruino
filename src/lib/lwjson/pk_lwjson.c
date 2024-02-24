@@ -1,5 +1,7 @@
 #include "../inc.h"
 
+#if CONF_JSON_ENABLED
+
 // 3 бита
 #define PK_LWJSON_TYPE_MASK 7
 
@@ -47,5 +49,6 @@ const lwjson_token_t *pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *
 
     PKLOGE("%s has invalid type", path);
     return NULL;
-
 }
+
+#endif // CONF_JSON_ENABLED
