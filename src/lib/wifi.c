@@ -138,7 +138,6 @@ bool pk_wifi_connect() {
         return 0;
     }
 
-    PKLOGI("WIFI STA started");
     PKLOGI("Connecting to ssid: %s, password: %s", CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,

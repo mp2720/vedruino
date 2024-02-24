@@ -55,5 +55,5 @@ void setup() {
 }
 
 void loop() {
-    vTaskDelete(NULL);
+    delay(10000);
 }
