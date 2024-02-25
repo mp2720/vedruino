@@ -55,3 +55,9 @@
 
 UDP broadcast:
 * 8419 - `netlog` boot notifications.
+
+## mDNS имена
+Все mDNS имена должны начинаться с `14`, а оканчиваться на `.local`:
+* `14mp-esp1.local` - ESP32 [mp1884](github.com/mp1884).
+* `14mp-esp2.local` - ESP32 [mp1884](github.com/mp1884).
+

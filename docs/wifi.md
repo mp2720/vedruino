@@ -7,7 +7,7 @@ bool pk_wifi_connect();
 
 Конфиг:
 ```ini
-[wifi]
+[lib.wifi]
 enabled=(bool)
 ssid=(str)
 password=(str)

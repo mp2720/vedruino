@@ -1,12 +1,13 @@
 #pragma once
 
 #include "../conf.h"
+#include "macro.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 
-#if CONF_IP_ENABLED
+PK_EXTERNC_BEGIN
 
 typedef int pkSocketHandle_t;
 
@@ -94,4 +95,4 @@ bool pk_udp_recvn(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t n);
 // Закрывает tcp/udp сокет.
 bool pk_sock_close(pkSocketHandle_t hd);
 
-#endif // CONF_IP_ENABLED
+PK_EXTERNC_END

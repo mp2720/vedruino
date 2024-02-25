@@ -1,7 +1,7 @@
 #include "inc.h"
 
-#if CONF_NETLOG_ENABLED
-#include <driver/gpio.h>
+#if CONF_LIB_NETLOG_ENABLED
+
 #include <esp_expression_with_stack.h>
 #include <esp_mac.h>
 #include <esp_random.h>
@@ -9,6 +9,7 @@
 #include <freertos/semphr.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/socket.h>
 
 #define SHSTACK_SIZE 4096
 #define CTL_SERVER_TASK_STACK_SIZE 4096
@@ -33,15 +34,15 @@ static const char *TAG = "netlog";
 static SemaphoreHandle_t clients_mutex, shstack_mutex;
 
 // storage for FreeRTOS static data
-static NOINIT StaticSemaphore_t clients_mutex_st, shstack_mutex_st;
-static NOINIT StaticTask_t server_task_st;
-static NOINIT uint8_t server_task_stack[CTL_SERVER_TASK_STACK_SIZE];
+static PK_NOINIT StaticSemaphore_t clients_mutex_st, shstack_mutex_st;
+static PK_NOINIT StaticTask_t server_task_st;
+static PK_NOINIT uint8_t server_task_stack[CTL_SERVER_TASK_STACK_SIZE];
 
 #define CLIENTS_MUX_TAKE xSemaphoreTake(clients_mutex, portMAX_DELAY)
 #define CLIENTS_MUX_GIVE xSemaphoreGive(clients_mutex)
 
-static NOINIT uint8_t mac_addr[MAC_ADDR_SIZE];
-static NOINIT uint8_t session_id[SESSION_ID_SIZE];
+static PK_NOINIT uint8_t mac_addr[MAC_ADDR_SIZE];
+static PK_NOINIT uint8_t session_id[SESSION_ID_SIZE];
 
 typedef struct pkNetlogClient {
     pkSocketHandle_t hd;
@@ -55,16 +56,16 @@ typedef struct pkNetlogClient {
 // protected by clients_mutex
 static int clients_num;
 static int udp_clients_num;
-static NOINIT pkNetlogClient_t clients[CONF_NETLOG_MAX_CLIENTS];
+static PK_NOINIT pkNetlogClient_t clients[CONF_LIB_NETLOG_MAX_CLIENTS];
 // first byte for udp pack cnt
-static NOINIT char flush_with_shstack_udpbuf[1 + CONF_NETLOG_BUF_SIZE];
-static NOINIT const char *flush_with_shstack_buf_ptr;
-static NOINIT int flush_with_shstack_n;
+static PK_NOINIT char flush_with_shstack_udpbuf[1 + CONF_LIB_NETLOG_BUF_SIZE];
+static PK_NOINIT const char *flush_with_shstack_buf_ptr;
+static PK_NOINIT int flush_with_shstack_n;
 
 // protected by shstack_mutex
-static NOINIT uint8_t shstack[SHSTACK_SIZE];
+static PK_NOINIT uint8_t shstack[SHSTACK_SIZE];
 
-static NOINIT FILE *netlogout;
+static PK_NOINIT FILE *netlogout;
 
 typedef enum pkNetlogResp {
     // for udp
@@ -108,22 +109,23 @@ void pk_netlog_init() {
 
     netlogout = fwopen(NULL, &stdout_flush);
     PK_ASSERT(netlogout);
-    PK_ASSERT(setvbuf(netlogout, NULL, _IOLBF, CONF_NETLOG_BUF_SIZE) >= 0);
+    PK_ASSERT(setvbuf(netlogout, NULL, _IOLBF, CONF_LIB_NETLOG_BUF_SIZE) >= 0);
 
     stdout = netlogout;
     _GLOBAL_REENT->_stdout = netlogout;
 
-    PK_ASSERT(xTaskCreateStatic(&ctl_server_task, "pknetlog_ctl", CTL_SERVER_TASK_STACK_SIZE, NULL,
-                                CTL_SERVER_TASK_PRIORITY, server_task_stack, &server_task_st));
-
-    int i = 0;
-    while (1) {
-        PKLOGI("%d aaaaaaaaaaaaaaaaaaaaa", i++);
-        vTaskDelay(1000);
-    }
+    PK_ASSERT(xTaskCreateStatic(
+        &ctl_server_task,
+        "pknetlog_ctl",
+        CTL_SERVER_TASK_STACK_SIZE,
+        NULL,
+        CTL_SERVER_TASK_PRIORITY,
+        server_task_stack,
+        &server_task_st
+    ));
 }
 
-static void ctl_server_task(UNUSED void *p) {
+static void ctl_server_task(PK_UNUSED void *p) {
     PKLOGD("starting server");
 
     pkTcpServer_t shd = pk_tcp_server(CTL_SERVER_PORT, 2);
@@ -211,7 +213,10 @@ static void bcast_boot_notify() {
 
     PK_ASSERT(ok_cnt >= BCAST_BOOT_NOTIFIES / 3);
 
-    PKLOGI("%d out of " PK_STRINGIZE(BCAST_BOOT_PORT) " boot messages sent successfully", ok_cnt);
+    PKLOGI(
+        "%d out of " PK_STRINGIZE(BCAST_BOOT_NOTIFIES) " boot messages sent successfully",
+        ok_cnt
+    );
 
     pk_sock_close(chd);
 }
@@ -334,7 +339,7 @@ static int get_client_idx_by_addr_str(const char *addr_str) {
 
 // NOT thread safe. surround call with clients_mutex take/release
 static int get_free_idx_in_clients() {
-    if (clients_num == CONF_NETLOG_MAX_CLIENTS)
+    if (clients_num == CONF_LIB_NETLOG_MAX_CLIENTS)
         return -1;
 
     return clients_num;
@@ -354,7 +359,7 @@ static void del_client(int i) {
     --clients_num;
 }
 
-static int stdout_flush(UNUSED void *cookie, const char *buf, int n) {
+static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
     // avoid recursion
     stdout = pk_log_uartout;
 
@@ -362,9 +367,12 @@ static int stdout_flush(UNUSED void *cookie, const char *buf, int n) {
     {
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
-        PKLOGV_UART("stdout_flush flush_with_shstack_n=%d, flush_with_shstack_buf_ptr=%p", n, buf);
-        esp_execute_shared_stack_function(shstack_mutex, shstack, SHSTACK_SIZE,
-                                          &flush_with_shstack);
+        esp_execute_shared_stack_function(
+            shstack_mutex,
+            shstack,
+            SHSTACK_SIZE,
+            &flush_with_shstack
+        );
     }
     CLIENTS_MUX_GIVE;
 
@@ -381,7 +389,7 @@ static void flush_with_shstack(void) {
         if (udp_clients_num == 0) {
             cur_blk_size = flush_with_shstack_n - sent;
         } else {
-            cur_blk_size = MIN(flush_with_shstack_n - sent, CONF_NETLOG_BUF_SIZE);
+            cur_blk_size = PK_MIN(flush_with_shstack_n - sent, CONF_LIB_NETLOG_BUF_SIZE);
             // no overlaps
             memcpy(flush_with_shstack_udpbuf + 1, flush_with_shstack_buf_ptr + sent, cur_blk_size);
         }
@@ -390,8 +398,12 @@ static void flush_with_shstack(void) {
             ssize_t sent_blk_size;
             if (clients[i].udp.flag) {
                 flush_with_shstack_udpbuf[0] = clients[i].udp.pack_cnt++;
-                sent_blk_size = pk_udp_send(clients[i].hd, clients[i].udp.addr_port,
-                                            flush_with_shstack_udpbuf, cur_blk_size + 1);
+                sent_blk_size = pk_udp_send(
+                    clients[i].hd,
+                    clients[i].udp.addr_port,
+                    flush_with_shstack_udpbuf,
+                    cur_blk_size + 1
+                );
             } else {
                 sent_blk_size =
                     pk_tcp_send(clients[i].hd, flush_with_shstack_buf_ptr + sent, cur_blk_size);
@@ -411,4 +423,4 @@ static void flush_with_shstack(void) {
     }
 }
 
-#endif // CONF_NETLOG_ENABLED
+#endif // CONF_LIB_NETLOG_ENABLED

@@ -1,18 +1,15 @@
-#include "esp_err.h"
-#include "esp_wifi_types.h"
 #include "inc.h"
 
-#include "esp_event.h"
-#include "esp_log.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
-#include "lwip/err.h"
-#include "lwip/sys.h"
-#include "macro.h"
-#include "nvs_flash.h"
+#if CONF_LIB_WIFI_ENABLED
+
+#include <esp_err.h>
+#include <esp_event.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <freertos/task.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -23,8 +20,12 @@ static const char *TAG = "wifi";
 
 static EventGroupHandle_t s_wifi_event_group;
 
-static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t event_id,
-                          void *event_data) {
+static void event_handler(
+    PK_UNUSED void *arg,
+    esp_event_base_t event_base,
+    int32_t event_id,
+    void *event_data
+) {
     static int s_retry_num = 0;
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -34,7 +35,7 @@ static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t
         }
 
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < CONF_WIFI_RETRY) {
+        if (s_retry_num < CONF_LIB_WIFI_RETRY) {
             esp_err_t res = esp_wifi_connect();
             if (res != ESP_OK) {
                 PKLOGE("esp_wifi_connect() error: %d - %s", (int)res, esp_err_to_name(res));
@@ -53,12 +54,12 @@ static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t
 }
 
 bool pk_wifi_connect() {
-    if (strlen(CONF_WIFI_SSID) + 1 > 32) {
-        PKLOGE("SSID to long: %u/32 bytes", strlen(CONF_WIFI_SSID));
+    if (strlen(CONF_LIB_WIFI_SSID) + 1 > 32) {
+        PKLOGE("SSID to long: %u/32 bytes", strlen(CONF_LIB_WIFI_SSID));
         return 0;
     }
-    if (strlen(CONF_WIFI_PASSWORD) + 1 > 64) {
-        PKLOGE("Password to long: %u/64 bytes", strlen(CONF_WIFI_SSID));
+    if (strlen(CONF_LIB_WIFI_PASSWORD) + 1 > 64) {
+        PKLOGE("Password to long: %u/64 bytes", strlen(CONF_LIB_WIFI_SSID));
         return 0;
     }
     /*
@@ -99,26 +100,43 @@ bool pk_wifi_connect() {
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
 
-    res = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL,
-                                              &instance_any_id);
+    res = esp_event_handler_instance_register(
+        WIFI_EVENT,
+        ESP_EVENT_ANY_ID,
+        &event_handler,
+        NULL,
+        &instance_any_id
+    );
     if (res != ESP_OK) {
-        PKLOGE("esp_event_handler_instance_register(WIFI_EVENT) error: %d - %s", (int)res,
-               esp_err_to_name(res));
+        PKLOGE(
+            "esp_event_handler_instance_register(WIFI_EVENT) error: %d - %s",
+            (int)res,
+            esp_err_to_name(res)
+        );
         return 0;
     }
 
-    res = esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL,
-                                              &instance_got_ip);
+    res = esp_event_handler_instance_register(
+        IP_EVENT,
+        IP_EVENT_STA_GOT_IP,
+        &event_handler,
+        NULL,
+        &instance_got_ip
+    );
     if (res != ESP_OK) {
-        PKLOGE("esp_event_handler_instance_register(IP_EVENT) error: %d - %s", (int)res,
-               esp_err_to_name(res));
+        PKLOGE(
+            "esp_event_handler_instance_register(IP_EVENT) error: %d - %s",
+            (int)res,
+            esp_err_to_name(res)
+        );
         return 0;
     }
 
-    wifi_config_t wifi_config = {.sta = {
-                                     .ssid = CONF_WIFI_SSID,
-                                     .password = CONF_WIFI_PASSWORD,
-                                 }};
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = CONF_LIB_WIFI_SSID,
+            .password = CONF_LIB_WIFI_PASSWORD,
+        }};
 
     res = esp_wifi_set_mode(WIFI_MODE_STA);
     if (res != ESP_OK) {
@@ -131,7 +149,7 @@ bool pk_wifi_connect() {
         PKLOGE("esp_wifi_set_config() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-    
+
     res = esp_wifi_start();
     if (res != ESP_OK) {
         PKLOGE("esp_wifi_start() error: %d - %s", (int)res, esp_err_to_name(res));
@@ -140,8 +158,13 @@ bool pk_wifi_connect() {
 
     PKLOGI("Connecting to ssid: %s, password: %s", CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
 
-    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-                                           pdFALSE, pdFALSE, portMAX_DELAY);
+    EventBits_t bits = xEventGroupWaitBits(
+        s_wifi_event_group,
+        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+        pdFALSE,
+        pdFALSE,
+        portMAX_DELAY
+    );
 
     if (bits & WIFI_CONNECTED_BIT) {
         PKLOGI("Connected to AP");
@@ -153,15 +176,21 @@ bool pk_wifi_connect() {
 
     res = esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip);
     if (res != ESP_OK) {
-        PKLOGE("esp_event_handler_instance_unregister(IP_EVENT) error: %d - %s", (int)res,
-               esp_err_to_name(res));
+        PKLOGE(
+            "esp_event_handler_instance_unregister(IP_EVENT) error: %d - %s",
+            (int)res,
+            esp_err_to_name(res)
+        );
         return 0;
     }
 
     res = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id);
     if (res != ESP_OK) {
-        PKLOGE("esp_event_handler_instance_unregister(WIFI_EVENT) error: %d - %s", (int)res,
-               esp_err_to_name(res));
+        PKLOGE(
+            "esp_event_handler_instance_unregister(WIFI_EVENT) error: %d - %s",
+            (int)res,
+            esp_err_to_name(res)
+        );
         return 0;
     }
 
@@ -175,3 +204,5 @@ bool pk_wifi_connect() {
 
     return 1;
 }
+
+#endif // CONF_LIB_WIFI_ENABLED

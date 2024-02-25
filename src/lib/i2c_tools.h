@@ -1,4 +1,7 @@
 #pragma once
+
+#include "../conf.h"
+#include "macro.h"
 #include <stdint.h>
 #include "inc.h"
 #include <freertos/FreeRTOS.h>
@@ -10,13 +13,15 @@
 
 extern SemaphoreHandle_t pk_i2c_mutex;
 
+PK_EXTERNC_BEGIN
+
 typedef enum {
-    PK_SW_NONE = 0,  //нет мультиплексора
-    PK_SW_PCA9547,   //смотреть на плате
-    PK_SW_PW548A,    //смотреть на плате
+    PK_SW_NONE = 0, // нет мультиплексора
+    PK_SW_PCA9547,  // смотреть на плате
+    PK_SW_PW548A,   // смотреть на плате
 } pkI2cSwitcher_t;
 
-//инициализация инструментов и Wire.begin()
+// инициализация инструментов и Wire.begin()
 void pk_i2c_begin(pkI2cSwitcher_t switcher);
 
 //заблокировать i2c для других задач, перед работой с ним
@@ -25,9 +30,10 @@ void pk_i2c_begin(pkI2cSwitcher_t switcher);
 //обязательно разблокировать i2c после работы с ним
 #define pk_i2c_unlock() PK_ASSERT(xSemaphoreGiveRecursive(pk_i2c_mutex) == pdTRUE)
 
-//переключить мультиплексор на линию 3 - 7
+// переключить мультиплексор на линию 3 - 7
 void pk_i2c_switch(int i2c_line);
 
-//сканирование датчиков
+// сканирование датчиков
 void pk_i2c_scan();
 
+PK_EXTERNC_END

@@ -1,8 +1,10 @@
-#include "i2c_tools.h"
-#include "freertos/projdefs.h"
 #include "inc.h"
-#include "macro.h"
+
+#if CONF_LIB_I2C_ENABLED
+
 #include <Wire.h>
+#include <freertos/portmacro.h>
+#include <freertos/projdefs.h>
 
 SemaphoreHandle_t pk_i2c_mutex = NULL;
 static QueueHandle_t current_i2c_line = NULL; // очередь длинной 1, хранит текущую линию i2c
@@ -137,3 +139,5 @@ void pk_i2c_scan() {
     }
     pk_i2c_unlock();
 }
+
+#endif // CONF_LIB_I2C_ENABLED

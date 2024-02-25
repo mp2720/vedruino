@@ -4,7 +4,7 @@
 #include <lwip/sockets.h>
 #include <sys/socket.h>
 
-#if CONF_IP_ENABLED
+#if CONF_LIB_IP_ENABLED
 
 #define MAX_RETRIES_ON_ENOMEM 100
 
@@ -36,8 +36,16 @@ void pk_ip_addr2str(pkIpAddr_t addr, char str[PK_IP_ADDR_STR_LEN]) {
     };
     // clang-format on
 
-    snprintf(str, PK_IP_ADDR_STR_LEN, "%d.%d.%d.%d:%d", addr_bytes[0], addr_bytes[1], addr_bytes[2],
-             addr_bytes[3], addr.port);
+    snprintf(
+        str,
+        PK_IP_ADDR_STR_LEN,
+        "%d.%d.%d.%d:%d",
+        addr_bytes[0],
+        addr_bytes[1],
+        addr_bytes[2],
+        addr_bytes[3],
+        addr.port
+    );
 }
 
 static pkSocketHandle_t create_srv_sock(uint16_t port, sa_family_t family) {
@@ -142,7 +150,7 @@ ssize_t pk_tcp_send(pkTcpClient_t chd, const void *buf, size_t n) {
         if (st == SEND_RETRY)
             continue;
         else
-            return st == SEND_OK ? written : -1;
+            return st == SEND_OK ? written : PK_SOCKERR;
     }
 }
 
@@ -155,7 +163,7 @@ ssize_t pk_udp_send(pkUdpHandle_t hd, pkIpAddr_t addr, const void *buf, size_t n
         if (st == SEND_RETRY)
             continue;
         else
-            return st == SEND_OK ? written : -1;
+            return st == SEND_OK ? written : PK_SOCKERR;
     }
 }
 
@@ -168,10 +176,14 @@ static bool handle_n_func(const char *func_name, ssize_t processed, size_t exp) 
 }
 
 bool pk_tcp_sendn(pkTcpClient_t chd, const void *buf, size_t n) {
-    ssize_t sent = pk_tcp_send(chd, buf, n);
-    if (sent < 0)
-        return false;
-    return handle_n_func("pk_tcp_send", sent, n);
+    size_t total_sent = 0;
+    while (total_sent < n) {
+        ssize_t sent = pk_tcp_send(chd, buf + total_sent, n - total_sent);
+        if (sent < 0)
+            return false;
+        total_sent += sent;
+    }
+    return handle_n_func("pk_tcp_send", total_sent, n);
 }
 
 bool pk_udp_sendn(pkUdpHandle_t chd, pkIpAddr_t addr, const void *buf, size_t n) {
@@ -185,7 +197,7 @@ ssize_t pk_tcp_recv(pkTcpClient_t chd, void *buf, size_t max_n) {
     ssize_t rd = read(chd, buf, max_n);
     if (rd < 0) {
         PKLOGE("read() %s", strerror(errno));
-        return -1;
+        return PK_SOCKERR;
     }
     return rd;
 }
@@ -196,16 +208,24 @@ ssize_t pk_udp_recv(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t max_n) 
     ssize_t rcv = recvfrom(hd, buf, max_n, 0, (struct sockaddr *)&saddr, &saddr_len);
     if (rcv < 0) {
         PKLOGE("recvfrom() %s", strerror(errno));
-        return -1;
+        return PK_SOCKERR;
     }
     return rcv;
 }
 
 bool pk_tcp_recvn(pkTcpClient_t chd, void *buf, size_t n) {
-    ssize_t rcv = pk_tcp_recv(chd, buf, n);
-    if (rcv < 0)
-        return false;
-    return handle_n_func("pk_tcp_recv", rcv, n);
+    size_t total_rcv = 0;
+    while (total_rcv < n) {
+        ssize_t rcv = pk_tcp_recv(chd, buf, n - total_rcv);
+        if (rcv < 0)
+            return false;
+
+        if (rcv == 0)
+            break;
+
+        total_rcv += (size_t)rcv;
+    }
+    return handle_n_func("pk_tcp_recv", total_rcv, n);
 }
 
 bool pk_udp_recvn(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t n) {
@@ -224,4 +244,4 @@ bool pk_sock_close(pkSocketHandle_t hd) {
     return true;
 }
 
-#endif // CONF_IP_ENABLED
+#endif // CONF_LIB_IP_ENABLED

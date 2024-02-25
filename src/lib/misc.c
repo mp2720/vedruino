@@ -2,33 +2,31 @@
 
 #include <esp_ota_ops.h>
 #include <esp_system.h>
-#include <stdlib.h>
+#include <math.h>
 
-const char* pk_running_part_label() {
+const char *pk_running_part_label() {
     const esp_partition_t *part = esp_ota_get_running_partition();
     if (part == NULL)
         return NULL;
     return part->label;
 }
 
-void pk_hum_size(size_t size, float *out_f, char *out_suf) {
+void pk_hum_size(float size, float *out_f, char out_suf[PK_BISUFFIX_SIZE]) {
     const char sufs[] = "\0KMGTPEZY";
+
+    size_t suf_i = 0;
+    if (size != INFINITY && size != NAN) {
+        while (size > 1024.f && suf_i < sizeof(sufs) - 2) {
+            size /= 1024.f;
+            ++suf_i;
+        }
+    }
 
     *out_f = size;
 
-    size_t suf_i = 0;
-    while (*out_f > 1024.f && suf_i < sizeof(sufs) - 2) {
-        *out_f /= 1024.f;
-        ++suf_i;
-    }
-
-    if (suf_i == 0) {
-        out_suf[0] = 0;
-    } else {
-        out_suf[0] = sufs[suf_i];
-        out_suf[1] = 'i';
-        out_suf[2] = 0;
-    }
+    out_suf[0] = sufs[suf_i];
+    out_suf[1] = 'i';
+    out_suf[2] = 0;
 }
 
 const char *pk_reset_reason_str() {
