@@ -84,9 +84,15 @@ static void md5str(const uint8_t md5[MD5_SIZE], char out_str[MD5STR_SIZE]);
 static char nibble_str(uint8_t n);
 
 bool ota_server_start() {
-    TaskHandle_t thd =
-        xTaskCreateStatic(&server_task, "ota", SERVER_TASK_STACK_SIZE, NULL,
-                          SERVER_TASK_LOW_PRIORITY, server_task_stack, &server_task_st);
+    TaskHandle_t thd = xTaskCreateStatic(
+        &server_task,
+        "ota",
+        SERVER_TASK_STACK_SIZE,
+        NULL,
+        SERVER_TASK_LOW_PRIORITY,
+        server_task_stack,
+        &server_task_st
+    );
     if (thd == NULL) {
         PKLOGE("xTaskCreateStatic failed");
         return false;
@@ -278,8 +284,14 @@ static pkOtaResp_t handle_req(pkTcpClient_t chd) {
     pk_hum_size((float)header.size, &size_f, size_suf);
     pk_hum_size(avg_speed, &avg_speed_f, avg_speed_suf);
 
-    PKLOGI("%.1f%sb in %.1f secs, avg speed %.1f%sb/s", size_f, size_suf, secs, avg_speed_f,
-           avg_speed_suf);
+    PKLOGI(
+        "%.1f%sb in %.1f secs, avg speed %.1f%sb/s",
+        size_f,
+        size_suf,
+        secs,
+        avg_speed_f,
+        avg_speed_suf
+    );
 
 #if CONF_OTA_VERIFY_MD5
     uint8_t computed_md5[MD5_SIZE];
@@ -288,8 +300,13 @@ static pkOtaResp_t handle_req(pkTcpClient_t chd) {
     if (memcmp(computed_md5, header.md5, MD5_SIZE) != 0) {
         char computed_md5_str[MD5_SIZE];
         md5str(computed_md5, computed_md5_str);
-        PKLOGE("md5 mismatch: %.*s != %.*s", MD5STR_SIZE, computed_md5_str, MD5STR_SIZE,
-               header.md5str);
+        PKLOGE(
+            "md5 mismatch: %.*s != %.*s",
+            MD5STR_SIZE,
+            computed_md5_str,
+            MD5STR_SIZE,
+            header.md5str
+        );
         resp = PK_OTA_RESP_MD5_VERIFY_ERR;
         goto end;
     }

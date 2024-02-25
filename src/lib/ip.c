@@ -36,8 +36,16 @@ void pk_ip_addr2str(pkIpAddr_t addr, char str[PK_IP_ADDR_STR_LEN]) {
     };
     // clang-format on
 
-    snprintf(str, PK_IP_ADDR_STR_LEN, "%d.%d.%d.%d:%d", addr_bytes[0], addr_bytes[1], addr_bytes[2],
-             addr_bytes[3], addr.port);
+    snprintf(
+        str,
+        PK_IP_ADDR_STR_LEN,
+        "%d.%d.%d.%d:%d",
+        addr_bytes[0],
+        addr_bytes[1],
+        addr_bytes[2],
+        addr_bytes[3],
+        addr.port
+    );
 }
 
 static pkSocketHandle_t create_srv_sock(uint16_t port, sa_family_t family) {

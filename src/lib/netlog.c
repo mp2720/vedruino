@@ -114,8 +114,15 @@ void pk_netlog_init() {
     stdout = netlogout;
     _GLOBAL_REENT->_stdout = netlogout;
 
-    PK_ASSERT(xTaskCreateStatic(&ctl_server_task, "pknetlog_ctl", CTL_SERVER_TASK_STACK_SIZE, NULL,
-                                CTL_SERVER_TASK_PRIORITY, server_task_stack, &server_task_st));
+    PK_ASSERT(xTaskCreateStatic(
+        &ctl_server_task,
+        "pknetlog_ctl",
+        CTL_SERVER_TASK_STACK_SIZE,
+        NULL,
+        CTL_SERVER_TASK_PRIORITY,
+        server_task_stack,
+        &server_task_st
+    ));
 }
 
 static void ctl_server_task(PK_UNUSED void *p) {
@@ -206,8 +213,10 @@ static void bcast_boot_notify() {
 
     PK_ASSERT(ok_cnt >= BCAST_BOOT_NOTIFIES / 3);
 
-    PKLOGI("%d out of " PK_STRINGIZE(BCAST_BOOT_NOTIFIES) " boot messages sent successfully",
-           ok_cnt);
+    PKLOGI(
+        "%d out of " PK_STRINGIZE(BCAST_BOOT_NOTIFIES) " boot messages sent successfully",
+        ok_cnt
+    );
 
     pk_sock_close(chd);
 }
@@ -358,8 +367,12 @@ static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
     {
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
-        esp_execute_shared_stack_function(shstack_mutex, shstack, SHSTACK_SIZE,
-                                          &flush_with_shstack);
+        esp_execute_shared_stack_function(
+            shstack_mutex,
+            shstack,
+            SHSTACK_SIZE,
+            &flush_with_shstack
+        );
     }
     CLIENTS_MUX_GIVE;
 
@@ -385,8 +398,12 @@ static void flush_with_shstack(void) {
             ssize_t sent_blk_size;
             if (clients[i].udp.flag) {
                 flush_with_shstack_udpbuf[0] = clients[i].udp.pack_cnt++;
-                sent_blk_size = pk_udp_send(clients[i].hd, clients[i].udp.addr_port,
-                                            flush_with_shstack_udpbuf, cur_blk_size + 1);
+                sent_blk_size = pk_udp_send(
+                    clients[i].hd,
+                    clients[i].udp.addr_port,
+                    flush_with_shstack_udpbuf,
+                    cur_blk_size + 1
+                );
             } else {
                 sent_blk_size =
                     pk_tcp_send(clients[i].hd, flush_with_shstack_buf_ptr + sent, cur_blk_size);

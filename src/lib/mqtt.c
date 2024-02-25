@@ -52,8 +52,11 @@ bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len) {
         qsort(subs_topics.pairs, subs_topics.size, sizeof(pkTopic_t), topic_pair_cmp);
 
         for (int i = 0; i < subs_topics.size; i++) {
-            if (esp_mqtt_client_subscribe(pk_mqtt_client, (char *)subs_topics.pairs[i].name,
-                                          subs_topics.pairs[i].qos) < 0) {
+            if (esp_mqtt_client_subscribe(
+                    pk_mqtt_client,
+                    (char *)subs_topics.pairs[i].name,
+                    subs_topics.pairs[i].qos
+                ) < 0) {
                 PKLOGE("esp_mqtt_client_subscribe() error");
                 res = 0;
             }
@@ -69,8 +72,13 @@ bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len) {
 static pkTopic_t *find_callback(const char *name) {
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         pkTopic_t search_tmp_topic = {.name = name};
-        pkTopic_t *pair = (pkTopic_t *)bsearch(&search_tmp_topic, subs_topics.pairs,
-                                               subs_topics.size, sizeof(pkTopic_t), topic_pair_cmp);
+        pkTopic_t *pair = (pkTopic_t *)bsearch(
+            &search_tmp_topic,
+            subs_topics.pairs,
+            subs_topics.size,
+            sizeof(pkTopic_t),
+            topic_pair_cmp
+        );
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
@@ -129,8 +137,12 @@ static void mqtt_callback_task(PK_UNUSED void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-static void mqtt_event_handler(PK_UNUSED void *handler_args, PK_UNUSED esp_event_base_t base,
-                               PK_UNUSED int32_t event_id, void *event_data) {
+static void mqtt_event_handler(
+    PK_UNUSED void *handler_args,
+    PK_UNUSED esp_event_base_t base,
+    PK_UNUSED int32_t event_id,
+    void *event_data
+) {
 
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     static int retry = 0;
@@ -201,10 +213,11 @@ static void mqtt_event_handler(PK_UNUSED void *handler_args, PK_UNUSED esp_event
         memcpy(data_copy, event->data, event->data_len);
         data_copy[event->data_len] = '\0';
 
-        struct mqtt_callback_item args = {.callback = pair->callback,
-                                          .topic = topic_copy,
-                                          .data = data_copy,
-                                          .data_size = event->data_len};
+        struct mqtt_callback_item args = {
+            .callback = pair->callback,
+            .topic = topic_copy,
+            .data = data_copy,
+            .data_size = event->data_len};
 
         BaseType_t res = xQueueSend(cb_task.queue.handle, &args, pdMS_TO_TICKS(1000));
         if (res != pdTRUE) {
@@ -232,8 +245,14 @@ bool pk_mqtt_connect() {
         PKLOGE("MQTT queue create error");
         return 0;
     }
-    BaseType_t err = xTaskCreate(mqtt_callback_task, "pk_mqtt_callback_task", CB_TASK_STACK_SIZE,
-                                 NULL, TASK_DEFAULT_PRIORITY, &cb_task.task.handle);
+    BaseType_t err = xTaskCreate(
+        mqtt_callback_task,
+        "pk_mqtt_callback_task",
+        CB_TASK_STACK_SIZE,
+        NULL,
+        TASK_DEFAULT_PRIORITY,
+        &cb_task.task.handle
+    );
     if (err != pdPASS) {
         PKLOGE("MQTT callback task create error: %d", (int)err);
         return 0;
@@ -257,7 +276,11 @@ bool pk_mqtt_connect() {
     }
 
     esp_err_t res1 = esp_mqtt_client_register_event(
-        pk_mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+        pk_mqtt_client,
+        (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID,
+        mqtt_event_handler,
+        NULL
+    );
     if (res1 != ESP_OK) {
         PKLOGE("esp_mqtt_client_register_event() error: %d - %s", (int)res1, esp_err_to_name(res1));
         return 0;
@@ -270,9 +293,13 @@ bool pk_mqtt_connect() {
     }
     PKLOGI("Connecting to %s:%d", CONF_LIB_MQTT_HOST, CONF_LIB_MQTT_PORT);
 
-    EventBits_t bits =
-        xEventGroupWaitBits(pk_mqtt_event_group, PK_MQTT_CONNECTED_BIT | PK_MQTT_FAIL_BIT, pdFALSE,
-                            pdFALSE, portMAX_DELAY);
+    EventBits_t bits = xEventGroupWaitBits(
+        pk_mqtt_event_group,
+        PK_MQTT_CONNECTED_BIT | PK_MQTT_FAIL_BIT,
+        pdFALSE,
+        pdFALSE,
+        portMAX_DELAY
+    );
     if (bits & PK_MQTT_CONNECTED_BIT) {
         PKLOGI("Connected to MQTT");
     } else if (bits & PK_MQTT_FAIL_BIT) {

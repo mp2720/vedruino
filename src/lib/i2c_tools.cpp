@@ -2,9 +2,9 @@
 
 #if CONF_LIB_I2C_ENABLED
 
+#include <Wire.h>
 #include <freertos/portmacro.h>
 #include <freertos/projdefs.h>
-#include <Wire.h>
 
 static SemaphoreHandle_t pk_i2c_mutex = NULL;
 static QueueHandle_t current_i2c_line = NULL; // очередь длинной 1, хранит текущую линию i2c

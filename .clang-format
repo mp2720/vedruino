@@ -3,3 +3,11 @@ IndentWidth: 4
 ColumnLimit: 100
 AllowShortFunctionsOnASingleLine: Empty
 
+AlignAfterOpenBracket: BlockIndent
+AlignEscapedNewlines: Left
+AlignOperands: Align
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None

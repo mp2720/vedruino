@@ -41,8 +41,8 @@
 #define _PKLOG_LETTER_D "D"
 #define _PKLOG_LETTER_V "V"
 
-#define _PKLOG_NOP                                                                                 \
-    do {                                                                                           \
+#define _PKLOG_NOP \
+    do {           \
     } while (0)
 
 // clang-format off
@@ -58,7 +58,7 @@
 // clang-format on
 
 #define _PKLOGX_STDOUT(x, tag, fmt, ...) printf(_PKLOGX_ARGS(x, tag, fmt, ##__VA_ARGS__))
-#define _PKLOGX_UART(x, tag, fmt, ...)                                                             \
+#define _PKLOGX_UART(x, tag, fmt, ...) \
     fprintf(pk_log_uartout, _PKLOGX_ARGS(x, tag, fmt, ##__VA_ARGS__))
 
 #endif // !_PK_LOG_H
@@ -71,19 +71,19 @@
 #if PKLOG_LEVEL >= 1
 
 #if CONF_LOG_BTRACE_ON_ERROR
-#define PKLOGE_TAG(tag, fmt, ...)                                                                  \
-    do {                                                                                           \
-        PK_BTRACE_MUTEX_TAKE;                                                                      \
-        _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__);                                                \
-        pk_log_btrace(stdout);                                                                     \
-        PK_BTRACE_MUTEX_GIVE;                                                                      \
+#define PKLOGE_TAG(tag, fmt, ...)                   \
+    do {                                            \
+        PK_BTRACE_MUTEX_TAKE;                       \
+        _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__); \
+        pk_log_btrace(stdout);                      \
+        PK_BTRACE_MUTEX_GIVE;                       \
     } while (0)
-#define PKLOGE_UART_TAG(tag, fmt, ...)                                                             \
-    do {                                                                                           \
-        PK_BTRACE_MUTEX_TAKE;                                                                      \
-        _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__);                                                  \
-        pk_log_btrace(stdout);                                                                     \
-        PK_BTRACE_MUTEX_GIVE;                                                                      \
+#define PKLOGE_UART_TAG(tag, fmt, ...)            \
+    do {                                          \
+        PK_BTRACE_MUTEX_TAKE;                     \
+        _PKLOGX_UART(E, tag, fmt, ##__VA_ARGS__); \
+        pk_log_btrace(stdout);                    \
+        PK_BTRACE_MUTEX_GIVE;                     \
     } while (0)
 #else
 #define PKLOGE_TAG(tag, fmt, ...) _PKLOGX_STDOUT(E, tag, fmt, ##__VA_ARGS__)

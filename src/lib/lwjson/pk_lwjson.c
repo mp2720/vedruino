@@ -27,8 +27,8 @@ bool pk_lwjson_ret_handle(lwjsonr_t ret) {
     }
 }
 
-const lwjson_token_t *pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *token,
-                                         const char *path, int type_mask) {
+const lwjson_token_t *
+pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *token, const char *path, int type_mask) {
     const lwjson_token_t *tok = lwjson_find_ex(lwobj, token, path);
     if (tok == NULL) {
         PKLOGE("%s not found", path);
