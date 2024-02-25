@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../macro.h"
 #include "lwjson.h"
 #include <stdbool.h>
 
@@ -23,6 +24,8 @@
 // Остальные флаги игнорируются, искомый токен может иметь любой тип.
 #define PK_LWJSON_TYPE_IGNORE (1 << (_PK_LWJSON_BITS_PER_TYPE + 1))
 
+PK_EXTERNC_BEGIN
+
 // Обработка кода возврата функции lwjson.
 //
 // Если всё в порядке, то возвращает true.
@@ -43,8 +46,8 @@ bool pk_lwjson_ret_handle(lwjsonr_t ret);
 // * PK_LWJSON_TYPE_IGNORE - допустим любой тип
 //
 // Ошибка выводится в лог.
-const lwjson_token_t *pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *token,
-                                         const char *path, int type_mask);
+const lwjson_token_t *
+pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *token, const char *path, int type_mask);
 
 // Поиск токена по пути path начиная с первого токена.
 //
@@ -59,7 +62,9 @@ const lwjson_token_t *pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *
 //
 // Возвращает указатель на токен, либо NULL, если он не найден или имеет не подходящий тип.
 // Ошибка выводится в лог.
-static inline const lwjson_token_t *pk_lwjson_findt(lwjson_t *lwobj, const char *path,
-                                                    int type_mask) {
+static inline const lwjson_token_t *
+pk_lwjson_findt(lwjson_t *lwobj, const char *path, int type_mask) {
     return pk_lwjson_findt_ex(lwobj, NULL, path, type_mask);
 }
+
+PK_EXTERNC_END

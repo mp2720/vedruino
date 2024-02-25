@@ -1,6 +1,6 @@
 #include "../inc.h"
 
-#if CONF_JSON_ENABLED
+#if CONF_LIB_JSON_ENABLED
 
 // 3 бита
 #define PK_LWJSON_TYPE_MASK 7
@@ -51,4 +51,4 @@ const lwjson_token_t *pk_lwjson_findt_ex(lwjson_t *lwobj, const lwjson_token_t *
     return NULL;
 }
 
-#endif // CONF_JSON_ENABLED
+#endif // CONF_LIB_JSON_ENABLED

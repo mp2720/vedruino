@@ -5,7 +5,7 @@
 
 #include "../../conf.h"
 
-#if CONF_JSON_ENABLED
+#if CONF_LIB_JSON_ENABLED
 
 /*
  * Copyright (c) 2024 Tilen MAJERLE
@@ -748,4 +748,4 @@ const lwjson_token_t *lwjson_find_ex(lwjson_t *lwobj, const lwjson_token_t *toke
     return prv_find(token, path);
 }
 
-#endif // CONF_JSON_ENABLED
+#endif // CONF_LIB_JSON_ENABLED

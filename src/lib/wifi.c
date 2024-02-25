@@ -1,18 +1,15 @@
-#include "esp_err.h"
-#include "esp_wifi_types.h"
 #include "inc.h"
 
-#include "esp_event.h"
-#include "esp_log.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
-#include "lwip/err.h"
-#include "lwip/sys.h"
-#include "macro.h"
-#include "nvs_flash.h"
+#if CONF_LIB_WIFI_ENABLED
+
+#include <esp_err.h>
+#include <esp_event.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <freertos/task.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -23,7 +20,7 @@ static const char *TAG = "wifi";
 
 static EventGroupHandle_t s_wifi_event_group;
 
-static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t event_id,
+static void event_handler(PK_UNUSED void *arg, esp_event_base_t event_base, int32_t event_id,
                           void *event_data) {
     static int s_retry_num = 0;
 
@@ -34,7 +31,7 @@ static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t
         }
 
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < CONF_WIFI_RETRY) {
+        if (s_retry_num < CONF_LIB_WIFI_RETRY) {
             esp_err_t res = esp_wifi_connect();
             if (res != ESP_OK) {
                 PKLOGE("esp_wifi_connect() error: %d - %s", (int)res, esp_err_to_name(res));
@@ -53,12 +50,12 @@ static void event_handler(UNUSED void *arg, esp_event_base_t event_base, int32_t
 }
 
 bool pk_wifi_connect() {
-    if (strlen(CONF_WIFI_SSID) + 1 > 32) {
-        PKLOGE("SSID to long: %u/32 bytes", strlen(CONF_WIFI_SSID));
+    if (strlen(CONF_LIB_WIFI_SSID) + 1 > 32) {
+        PKLOGE("SSID to long: %u/32 bytes", strlen(CONF_LIB_WIFI_SSID));
         return 0;
     }
-    if (strlen(CONF_WIFI_PASSWORD) + 1 > 64) {
-        PKLOGE("Password to long: %u/64 bytes", strlen(CONF_WIFI_SSID));
+    if (strlen(CONF_LIB_WIFI_PASSWORD) + 1 > 64) {
+        PKLOGE("Password to long: %u/64 bytes", strlen(CONF_LIB_WIFI_SSID));
         return 0;
     }
     /*
@@ -116,8 +113,8 @@ bool pk_wifi_connect() {
     }
 
     wifi_config_t wifi_config = {.sta = {
-                                     .ssid = CONF_WIFI_SSID,
-                                     .password = CONF_WIFI_PASSWORD,
+                                     .ssid = CONF_LIB_WIFI_SSID,
+                                     .password = CONF_LIB_WIFI_PASSWORD,
                                  }};
 
     res = esp_wifi_set_mode(WIFI_MODE_STA);
@@ -131,7 +128,7 @@ bool pk_wifi_connect() {
         PKLOGE("esp_wifi_set_config() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-    
+
     res = esp_wifi_start();
     if (res != ESP_OK) {
         PKLOGE("esp_wifi_start() error: %d - %s", (int)res, esp_err_to_name(res));
@@ -139,7 +136,7 @@ bool pk_wifi_connect() {
     }
 
     PKLOGI("WIFI STA started");
-    PKLOGI("Connecting to ssid: %s, password: %s", CONF_WIFI_SSID, CONF_WIFI_PASSWORD);
+    PKLOGI("Connecting to ssid: %s, password: %s", CONF_LIB_WIFI_SSID, CONF_LIB_WIFI_PASSWORD);
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE, pdFALSE, portMAX_DELAY);
@@ -176,3 +173,5 @@ bool pk_wifi_connect() {
 
     return 1;
 }
+
+#endif // CONF_LIB_WIFI_ENABLED

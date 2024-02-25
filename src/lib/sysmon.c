@@ -6,6 +6,8 @@
 #include <freertos/task.h>
 #include <stdbool.h>
 
+#if 0
+
 #define LOG_TASK_STACK_SIZE 2048
 #define LOG_TASK_PRIORITY 24
 
@@ -210,3 +212,5 @@ static inline void log_and_reset_cpu_load(int core_id) {
         xSemaphoreGive(idle_mutex[core_id]);
     }
 }
+
+#endif // 0

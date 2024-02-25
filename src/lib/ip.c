@@ -4,7 +4,7 @@
 #include <lwip/sockets.h>
 #include <sys/socket.h>
 
-#if CONF_IP_ENABLED
+#if CONF_LIB_IP_ENABLED
 
 #define MAX_RETRIES_ON_ENOMEM 100
 
@@ -236,4 +236,4 @@ bool pk_sock_close(pkSocketHandle_t hd) {
     return true;
 }
 
-#endif // CONF_IP_ENABLED
+#endif // CONF_LIB_IP_ENABLED

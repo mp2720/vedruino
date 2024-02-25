@@ -52,13 +52,13 @@ def get_param_or_fail(section: str, key: str) -> str:
     try:
         return conf[section][key]
     except KeyError:
-        error(f"[{section}]:{key} not found")
+        error(f"{section}:{key} not found")
 
 
 if args.config_key:
     toks = args.config_key.split(':')
     if len(toks) != 2:
-        error("key must look like 'section:key' or 'key'")
+        error("key must look like 'section:key'")
 
     value = get_param_or_fail(*toks)
 
@@ -145,9 +145,7 @@ if args.gen_header:
     conf_h += "#pragma once\n"
     
     try:
-        add_section_comm("board")
-        add_def("board", "startup_delay", type_='int')
-
+        # lib
         add_section_comm("log")
         add_def("log", "lib_level", type_='int')
         add_def("log", "app_level", type_='int')
@@ -156,22 +154,25 @@ if args.gen_header:
         add_def("log", "print_color", type_='bool')
         add_def("log", "btrace_on_error", type_='bool')
 
-        add_module('mdns', {})
+        add_section_comm("main")
+        add_def("main", "setup_wait_until_ms", type_='int')
 
-        add_module('ip', {})
+        add_module('lib.mdns', {})
 
-        add_module("wifi", {
+        add_module('lib.ip', {})
+
+        add_module("lib.wifi", {
             'ssid': 'str',
             'password': 'str',
             'retry': 'int'
         })
 
-        add_module("netlog", {
+        add_module("lib.netlog", {
             'max_clients': 'int',
             'buf_size': 'int',
         })
 
-        add_module("mqtt", {
+        add_module("lib.mqtt", {
             'host': 'str',
             'port': 'int',
             'user': 'str',
@@ -179,29 +180,30 @@ if args.gen_header:
             'retry': 'int',
         })
 
-        add_module("ota", {
+        add_module("lib.ota", {
             'verify_md5': 'bool'
         })
 
-        add_module("sysmon", {
-            'enable_log': 'bool',
-            'log_interval_ms': 'int',
-            'monitor_cpu': 'bool',
-            'monitor_heap': 'bool',
-            'monitor_tasks': 'bool',
-            'dualcore': 'bool',
+        add_module('lib.json', {})
+
+        add_module('lib.i2c', {
+            'run_scanner': 'bool'
         })
 
-        add_module('json', {})
-
-        deps = {
-            'ip': ['wifi'],
-            'netlog': ['ip'],
-            'mqtt': ['wifi'],
-            'ota': ['ip']
+        lib_deps = {
+            'lib.ip': ['lib.wifi'],
+            'lib.netlog': ['lib.ip'],
+            'lib.mqtt': ['lib.wifi'],
+            'lib.ota': ['lib.ip']
         }
 
-        for m, dep_list in deps.items():
+        # app
+
+        # ...
+
+        app_deps = {}
+
+        for m, dep_list in {**lib_deps, **app_deps}.items():
             if not is_module_enabled(m):
                 continue
 

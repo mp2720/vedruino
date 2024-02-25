@@ -5,7 +5,7 @@
 
 #include "inc.h"
 
-#if CONF_OTA_ENABLED
+#if CONF_LIB_OTA_ENABLED
 
 #include <errno.h>
 #include <esp_ota_ops.h>
@@ -17,11 +17,11 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/socket.h>
 
-#if CONF_OTA_VERIFY_MD5
+#if CONF_LIB_OTA_VERIFY_MD5
 #include <mbedtls/md5.h>
-#endif // CONF_OTA_VERIFY_MD5
+#endif // CONF_LIB_OTA_VERIFY_MD5
 
 static const char *TAG = "ota";
 
@@ -94,7 +94,7 @@ bool ota_server_start() {
     return true;
 }
 
-static void server_task(UNUSED void *p) {
+static void server_task(PK_UNUSED void *p) {
     upd_part = esp_ota_get_next_update_partition(NULL);
     if (upd_part == NULL) {
         PKLOGE("no partition found for next update");
@@ -382,4 +382,4 @@ static inline char nibble_str(uint8_t n) {
         return 'a' + n - 10;
 }
 
-#endif // CONF_OTA_ENABLED
+#endif // CONF_LIB_OTA_ENABLED

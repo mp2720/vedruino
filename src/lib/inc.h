@@ -8,9 +8,11 @@
 
 // === i2c ===
 
+#if CONF_LIB_I2C_ENABLED
 #include "i2c_tools.h"
+#endif // CONF_LIB_I2C_ENABLED
 
-EXTERNC_BEGIN
+PK_EXTERNC_BEGIN
 
 // === log ===
 
@@ -26,52 +28,59 @@ EXTERNC_BEGIN
 
 // === wifi ===
 
-#if CONF_WIFI_ENABLED
+#if CONF_LIB_WIFI_ENABLED
 bool pk_wifi_connect();
-#endif // CONF_WIFI_ENABLED
+#endif // CONF_LIB_WIFI_ENABLED
 
 // === ip ===
 
+#if CONF_LIB_IP_ENABLED
 #include "ip.h"
+#endif // CONF_LIB_IP_ENABLED
 
 // === mdns ===
 
-#if CONF_MDNS_ENABLED
+#if CONF_LIB_MDNS_ENABLED
 bool pk_mdns_init();
-#endif // CONF_MDNS_ENABLED
+#endif // CONF_LIB_MDNS_ENABLED
 
 // === netlog ===
 
-#if CONF_NETLOG_ENABLED
+#if CONF_LIB_NETLOG_ENABLED
 void pk_netlog_init(void);
-#endif // CONF_NETLOG_ENABLED
+#endif // CONF_LIB_NETLOG_ENABLED
 
 // === ota ===
 
-#if CONF_OTA_ENABLED
+#if CONF_LIB_OTA_ENABLED
 bool ota_server_start();
-#endif // CONF_OTA_ENABLED
+#endif // CONF_LIB_OTA_ENABLED
 
 // === sysmon ===
 
-#if CONF_SYSMON_ENABLED
+#if 0
 int sysmon_start();
 void sysmon_dump_heap_stat();
 void sysmon_dump_tasks();
 void sysmon_pause();
 void sysmon_resume();
-#endif // CONF_SYSMON_ENABLED
+#endif
 
 // === mqtt ====
 
+#if CONF_LIB_MQTT_ENABLED
 #include "mqtt.h"
+#endif // CONF_LIB_MQTT_ENABLED
 
 // === json ===
 
-#if CONF_JSON_ENABLED
+#if CONF_LIB_JSON_ENABLED
 #include "lwjson/lwjson.h"
 #include "lwjson/pk_lwjson.h"
-#endif // CONF_JSON_ENABLED
+#endif // CONF_LIB_JSON_ENABLED
+
+// === pk_assert ===
+#include "pk_assert.h"
 
 // === misc ===
 
@@ -84,4 +93,4 @@ const char *pk_reset_reason_str();
 // Используются суффиксы для степени 2 (Ki, Mi, ..., Yi).
 void pk_hum_size(float size, float *out_f, char out_suf[PK_BISUFFIX_SIZE]);
 
-EXTERNC_END
+PK_EXTERNC_END

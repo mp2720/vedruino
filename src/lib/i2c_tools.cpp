@@ -1,7 +1,9 @@
-#include "i2c_tools.h"
-#include "freertos/portmacro.h"
-#include "freertos/projdefs.h"
 #include "inc.h"
+
+#if CONF_LIB_I2C_ENABLED
+
+#include <freertos/portmacro.h>
+#include <freertos/projdefs.h>
 #include <Wire.h>
 
 static SemaphoreHandle_t pk_i2c_mutex = NULL;
@@ -154,3 +156,5 @@ void pk_i2c_scan() {
     }
     pk_i2c_unlock();
 }
+
+#endif // CONF_LIB_I2C_ENABLED

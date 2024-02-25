@@ -6,7 +6,7 @@
 #include <nvs_flash.h>
 #include <stdbool.h>
 
-#if CONF_MDNS_ENABLED
+#if CONF_LIB_MDNS_ENABLED
 
 static const char *TAG = "mdns";
 
@@ -49,4 +49,4 @@ bool pk_mdns_init(void) {
     return true;
 }
 
-#endif // CONF_MDNS_ENABLED
+#endif // CONF_LIB_MDNS_ENABLED

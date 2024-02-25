@@ -1,6 +1,7 @@
-#include "mqtt.h"
-
 #include "inc.h"
+
+#if CONF_LIB_MQTT_ENABLED
+
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -68,9 +69,8 @@ bool pk_mqtt_set_subscribed_topics(pkTopic_t topics[], int len) {
 static pkTopic_t *find_callback(const char *name) {
     if (xSemaphoreTake(topics_mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         pkTopic_t search_tmp_topic = {.name = name};
-        pkTopic_t *pair =
-            (pkTopic_t *)bsearch(&search_tmp_topic, subs_topics.pairs, subs_topics.size,
-                                  sizeof(pkTopic_t), topic_pair_cmp);
+        pkTopic_t *pair = (pkTopic_t *)bsearch(&search_tmp_topic, subs_topics.pairs,
+                                               subs_topics.size, sizeof(pkTopic_t), topic_pair_cmp);
         xSemaphoreGive(topics_mutex);
         return pair;
     } else {
@@ -117,7 +117,7 @@ static struct {
     } queue;
 } cb_task;
 
-static void mqtt_callback_task(UNUSED void *pvParameters) {
+static void mqtt_callback_task(PK_UNUSED void *pvParameters) {
     struct mqtt_callback_item args;
     while (1) {
         if (xQueueReceive(cb_task.queue.handle, &args, portMAX_DELAY)) {
@@ -129,9 +129,9 @@ static void mqtt_callback_task(UNUSED void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_t base,
-                               UNUSED int32_t event_id, void *event_data) {
-    
+static void mqtt_event_handler(PK_UNUSED void *handler_args, PK_UNUSED esp_event_base_t base,
+                               PK_UNUSED int32_t event_id, void *event_data) {
+
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     static int retry = 0;
     switch (event->event_id) {
@@ -144,7 +144,7 @@ static void mqtt_event_handler(UNUSED void *handler_args, UNUSED esp_event_base_
     case MQTT_EVENT_DISCONNECTED: {
         PKLOGW("MQTT_EVENT_DISCONNECTED");
         xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_DISCONNECTED_BIT);
-        if (retry < CONF_MQTT_RETRY) {
+        if (retry < CONF_LIB_MQTT_RETRY) {
             retry++;
         } else {
             xEventGroupSetBits(pk_mqtt_event_group, PK_MQTT_FAIL_BIT);
@@ -245,10 +245,10 @@ bool pk_mqtt_connect() {
     esp_mqtt_client_config_t mqtt_cfg;
     memset(&mqtt_cfg, 0, sizeof(mqtt_cfg));
 
-    mqtt_cfg.host = CONF_MQTT_HOST;
-    mqtt_cfg.port = CONF_MQTT_PORT;
-    mqtt_cfg.username = CONF_MQTT_USER;
-    mqtt_cfg.password = CONF_MQTT_PASSWORD;
+    mqtt_cfg.host = CONF_LIB_MQTT_HOST;
+    mqtt_cfg.port = CONF_LIB_MQTT_PORT;
+    mqtt_cfg.username = CONF_LIB_MQTT_USER;
+    mqtt_cfg.password = CONF_LIB_MQTT_PASSWORD;
 
     pk_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!pk_mqtt_client) {
@@ -268,10 +268,11 @@ bool pk_mqtt_connect() {
         PKLOGE("esp_mqtt_client_start() error: %d - %s", (int)res, esp_err_to_name(res));
         return 0;
     }
-    PKLOGI("Connecting to %s:%d", CONF_MQTT_HOST, CONF_MQTT_PORT);
+    PKLOGI("Connecting to %s:%d", CONF_LIB_MQTT_HOST, CONF_LIB_MQTT_PORT);
 
-    EventBits_t bits = xEventGroupWaitBits(pk_mqtt_event_group, PK_MQTT_CONNECTED_BIT | PK_MQTT_FAIL_BIT, pdFALSE,
-                                           pdFALSE, portMAX_DELAY);
+    EventBits_t bits =
+        xEventGroupWaitBits(pk_mqtt_event_group, PK_MQTT_CONNECTED_BIT | PK_MQTT_FAIL_BIT, pdFALSE,
+                            pdFALSE, portMAX_DELAY);
     if (bits & PK_MQTT_CONNECTED_BIT) {
         PKLOGI("Connected to MQTT");
     } else if (bits & PK_MQTT_FAIL_BIT) {
@@ -331,3 +332,5 @@ bool pk_mqtt_resume() {
     }
     return 1;
 }
+
+#endif // CONF_LIB_MQTT_ENABLED
