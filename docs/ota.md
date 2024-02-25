@@ -10,9 +10,9 @@ make ota
 
 ## Конфигурация
 ```ini
-[ota]
+[lib.ota]
 enabled=true
-verify_md=true
+verify_md5=true
 ```
 
 * `verify_md5` - проверять прошивку по MD5. В ESP-IDF уже встроена проверка прошивки по простой

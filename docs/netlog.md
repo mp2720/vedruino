@@ -26,7 +26,7 @@ tools/netlog.py HOST
 
 ## Конфигурация
 ```ini
-[netlog]
+[lib.netlog]
 enabled=true
 max_clients=3
 buf_size=255

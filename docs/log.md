@@ -41,7 +41,7 @@ static const char *TAG = "my_tag";
 
 ## Конфигурация
 ```ini
-[log]
+[lib.log]
 lib_level=3
 app_level=4
 print_file_line=true

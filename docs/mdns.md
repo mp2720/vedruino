@@ -10,7 +10,7 @@ tools/flash_hostname.sh ESP_IDF_PATH HOSTNAME SERIAL_PORT
 
 ## Конфигурация
 ```ini
-[mdns]
+[lib.mdns]
 enabled=true
 ```
 
