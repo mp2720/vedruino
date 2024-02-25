@@ -3,7 +3,7 @@ SRC=$(shell find src/ -type f -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -n
 CONF=./config.ini
 
 SKETCH=$(shell tools/config.py ${CONF} -g tools:sketch_name)
-SERIAL_PORT=$(shell tools/config.py ${CONF} -g tools:port)
+SERIAL_PORT=$(shell tools/config.py ${CONF} -g tools:serial_port)
 FQBN=$(shell tools/config.py ${CONF} -g tools:fqbn)
 BOARD_HOSTNAME=$(shell tools/config.py ${CONF} -g tools:board_hostname)
 NETLOG_FLAGS=$(shell tools/config.py ${CONF} -g tools:netlog_flags)

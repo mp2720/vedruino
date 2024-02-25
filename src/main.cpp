@@ -67,7 +67,7 @@ void setup() {
     TickType_t end_app_tick = xTaskGetTickCount();
     PKLOGI(
         "setup_app() finished in %.1f secs",
-        pdMS_TO_TICKS(end_app_tick - start_app_tick) / 1000.f
+        pdTICKS_TO_MS(end_app_tick - start_app_tick) / 1000.f
     );
 }
 
