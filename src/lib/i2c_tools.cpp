@@ -6,10 +6,9 @@
 #include <freertos/portmacro.h>
 #include <freertos/projdefs.h>
 
-static SemaphoreHandle_t pk_i2c_mutex = NULL;
+SemaphoreHandle_t pk_i2c_mutex = NULL;
 static QueueHandle_t current_i2c_line = NULL; // очередь длинной 1, хранит текущую линию i2c
 
-#define I2C_MAX_WAIT_MS pdMS_TO_TICKS(1000)
 
 static const char *TAG = "i2c_tools";
 static pkI2cSwitcher_t i2c_switcher = PK_SW_NONE;
@@ -19,36 +18,20 @@ void pk_i2c_begin(pkI2cSwitcher_t switcher) {
 
     pk_i2c_mutex = xSemaphoreCreateRecursiveMutex();
     current_i2c_line = xQueueCreate(1, sizeof(int));
-    if (!current_i2c_line) {
-        PKLOGE("xQueueCreate failed");
-    }
+
+    PK_ASSERT(pk_i2c_mutex && current_i2c_line);
+
     int val = -1;
-    if (xQueueSend(current_i2c_line, &val, I2C_MAX_WAIT_MS) != pdTRUE) {
-        PKLOGE("xQueueSend failed");
-    }
-
+    PK_ASSERT(xQueueSend(current_i2c_line, &val, PK_I2C_MAX_WAIT_MS) == pdTRUE);
     Wire.begin();
-
     if (i2c_switcher != PK_SW_NONE) {
         pk_i2c_switch(0);
     }
 }
 
-void pk_i2c_lock() {
-    if (xSemaphoreTakeRecursive(pk_i2c_mutex, I2C_MAX_WAIT_MS) != pdTRUE) {
-        PKLOGE("failed to take i2c_mutex");
-    }
-}
-
-void pk_i2c_unlock() {
-    if (xSemaphoreGiveRecursive(pk_i2c_mutex) != pdTRUE) {
-        PKLOGE("failed to give i2c_mutex");
-    }
-}
-
 static int pk_i2c_get_line() {
     int line;
-    if (xQueuePeek(current_i2c_line, &line, I2C_MAX_WAIT_MS) != pdTRUE) {
+    if (xQueuePeek(current_i2c_line, &line, PK_I2C_MAX_WAIT_MS) != pdTRUE) {
         PKLOGE("failed to get i2c line from queqe");
         return -1;
     }
@@ -58,12 +41,12 @@ static int pk_i2c_get_line() {
 static void pk_i2c_set_line(int line) {
     int current_line;
     pk_i2c_lock();
-    if (xQueueReceive(current_i2c_line, &current_line, I2C_MAX_WAIT_MS) != pdTRUE) {
+    if (xQueueReceive(current_i2c_line, &current_line, PK_I2C_MAX_WAIT_MS) != pdTRUE) {
         pk_i2c_unlock();
         PKLOGE("failed to get i2c line from queqe");
         return;
     }
-    if (xQueueSend(current_i2c_line, &line, I2C_MAX_WAIT_MS) != pdTRUE) {
+    if (xQueueSend(current_i2c_line, &line, PK_I2C_MAX_WAIT_MS) != pdTRUE) {
         pk_i2c_unlock();
         PKLOGE("failed to send i2c line to queqe");
         return;
