@@ -156,7 +156,7 @@ bool pk_wifi_connect() {
         return 0;
     }
 
-    PKLOGI("Connecting to ssid: %s, password: %s", CONF_LIB_WIFI_SSID, CONF_LIB_WIFI_PASSWORD);
+    PKLOGI("Connecting to ssid: %s", CONF_LIB_WIFI_SSID);
 
     EventBits_t bits = xEventGroupWaitBits(
         s_wifi_event_group,
