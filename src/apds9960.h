@@ -14,3 +14,9 @@ typedef struct {
 void apds9960_init();
 
 apds9960Data_t apds9960_get_raw();
+
+typedef enum {
+    //реализовать
+} apds9960Color_t;
+
+apds9960Color_t apds9960_get_color(apds9960Data_t data);

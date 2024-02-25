@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../conf.h"
 #include "macro.h"
 #include <esp_idf_version.h>
 #include <freertos/FreeRTOS.h>
@@ -8,6 +9,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+PK_EXTERNC_BEGIN
 
 #ifndef TASK_DEFAULT_PRIORITY
 #define TASK_DEFAULT_PRIORITY 3
@@ -32,9 +35,9 @@ typedef void (*pkCallback_t)(char *, char *, int);
 
 // Структура топика
 typedef struct {
-    const char *name;    // имя топика
+    const char *name;      // имя топика
     pkCallback_t callback; // функция которая будет вызвана при получении сообщения на данный топик
-    int qos;             // quality of service
+    int qos;               // quality of service
 } pkTopic_t;
 
 // Подключиться к брокеру
@@ -58,3 +61,5 @@ bool pk_mqtt_stop();
 
 // Возобновить работу mqtt
 bool pk_mqtt_resume();
+
+PK_EXTERNC_END

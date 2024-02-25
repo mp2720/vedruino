@@ -41,12 +41,13 @@ static const char *TAG = "my_tag";
 
 ## Конфигурация
 ```ini
-[log]
+[lib.log]
 lib_level=3
 app_level=4
 print_file_line=true
 print_time=true
 print_color=true
+btrace_on_error=true
 ```
 
 * `lib_level` - уровень логов для библиотеки.
@@ -56,3 +57,5 @@ print_color=true
 * `print_time` - выводить время в миллисекундах.
 * `print_color` - использовать ASCII escape коды для изменения цвета вывода в зависимости от уровня
   сообщения в лог.
+* `btrace_on_error` - выводить backtrace для сообщения об ошибке.
+

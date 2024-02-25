@@ -28,3 +28,8 @@ apds9960Data_t apds9960_get_raw() {
     pk_i2c_unlock();
     return result;
 }
+
+apds9960Color_t apds9960_get_color(apds9960Data_t data) {
+    //реализовать
+    return (apds9960Color_t)0;
+}
