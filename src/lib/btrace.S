@@ -9,6 +9,7 @@
     .align      4
     .global     pk_btrace_get_start
     .type       pk_btrace_get_start, @function
+    .section    .iram1, "ax"
 pk_btrace_get_start:
     entry   a1, 32
     call8   xthal_window_spill

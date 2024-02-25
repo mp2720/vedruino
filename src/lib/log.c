@@ -19,7 +19,7 @@ void pk_log_init() {
 // btrace.S
 void pk_btrace_get_start(uint32_t *pc, uint32_t *sp, uint32_t *next_pc);
 
-void pk_log_btrace(FILE *out) {
+void IRAM_ATTR pk_log_btrace(FILE *out) {
     uint32_t pc, sp, next_pc;
     pk_btrace_get_start(&pc, &sp, &next_pc);
     fputs("PKBTRACE START\n", out);
