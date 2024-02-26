@@ -47,7 +47,7 @@ ota: build
 	tools/ota.py ${BIN_PATH} ${BOARD_HOSTNAME}
 
 netlog:
-	tools/netlog.py ${NETLOG_FLAGS} ${BOARD_HOSTNAME}
+	tools/netlog.py ${NETLOG_FLAGS} ${BOARD_HOSTNAME} | tools/btrace.py $(TOOLCHAIN_PATH)/xtensa-esp32-elf-addr2line build/${SKETCH}
 
 disasm:
 	${TOOLCHAIN_PATH}/xtensa-esp32-elf-objdump -d build/${SKETCH}.ino.elf > /tmp/${SKETCH}.s
