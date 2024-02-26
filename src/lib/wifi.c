@@ -1,6 +1,7 @@
 #include "inc.h"
 
-#if CONF_LIB_WIFI_ENABLED
+/* #if CONF_LIB_WIFI_ENABLED */
+#if 0
 
 #include <esp_err.h>
 #include <esp_event.h>

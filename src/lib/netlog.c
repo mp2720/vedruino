@@ -11,8 +11,8 @@
 #include <string.h>
 #include <sys/socket.h>
 
-#define SHSTACK_SIZE 4096
-#define CTL_SERVER_TASK_STACK_SIZE 4096
+#define SHSTACK_SIZE 8192
+#define CTL_SERVER_TASK_STACK_SIZE 8192
 #define CTL_SERVER_TASK_PRIORITY 10
 
 #define CTL_SERVER_PORT 8419
@@ -128,9 +128,10 @@ void pk_netlog_init() {
 static void ctl_server_task(PK_UNUSED void *p) {
     PKLOGD("starting server");
 
-    pkTcpServer_t shd = pk_tcp_server(CTL_SERVER_PORT, 2);
+    pkTcpServer_t shd = pk_tcp_server(CTL_SERVER_PORT, 1);
     PK_ASSERT(shd != PK_SOCKERR);
 
+    PKLOGD("pk_tcp_server() done");
     bcast_boot_notify();
 
     PKLOGI("listening on port " PK_STRINGIZE(CTL_SERVER_PORT));
@@ -194,6 +195,7 @@ static void ctl_server_task(PK_UNUSED void *p) {
 }
 
 static void bcast_boot_notify() {
+    PKLOGD("bcast_boot_notify() started");
     uint8_t pack[MAGIC_SIZE + MAC_ADDR_SIZE + SESSION_ID_SIZE] = MAGIC;
     memcpy(pack + MAGIC_SIZE, mac_addr, MAC_ADDR_SIZE);
     memcpy(pack + MAGIC_SIZE + MAC_ADDR_SIZE, session_id, SESSION_ID_SIZE);
@@ -360,11 +362,9 @@ static void del_client(int i) {
 }
 
 static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
-    // avoid recursion
-    stdout = pk_log_uartout;
-
     CLIENTS_MUX_TAKE;
     {
+        /* fflush(pk_log_uartout); */
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
         esp_execute_shared_stack_function(
@@ -376,13 +376,16 @@ static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
     }
     CLIENTS_MUX_GIVE;
 
-    stdout = netlogout;
-
     return n;
 }
 
 // NOT thread safe. surround call with clients_mutex take/release
 static void flush_with_shstack(void) {
+    // avoid recursion
+    stdout = pk_log_uartout;
+
+    /* PKLOGD_UART("sending %.*s", flush_with_shstack_n, flush_with_shstack_buf_ptr); */
+
     size_t sent = 0;
     while (sent < (size_t)flush_with_shstack_n) {
         size_t cur_blk_size;
@@ -421,6 +424,8 @@ static void flush_with_shstack(void) {
 
         sent += cur_blk_size;
     }
+
+    stdout = netlogout;
 }
 
 #endif // CONF_LIB_NETLOG_ENABLED

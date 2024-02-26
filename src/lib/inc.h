@@ -28,7 +28,8 @@ PK_EXTERNC_BEGIN
 
 // === wifi ===
 
-#if CONF_LIB_WIFI_ENABLED
+/* #if CONF_LIB_WIFI_ENABLED */
+#if 0
 bool pk_wifi_connect();
 #endif // CONF_LIB_WIFI_ENABLED
 

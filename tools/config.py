@@ -154,8 +154,9 @@ if args.gen_header:
         add_def("log", "print_color", type_='bool')
         add_def("log", "btrace_on_error", type_='bool')
 
-        add_section_comm("main")
-        add_def("main", "setup_wait_until_ms", type_='int')
+        add_section_comm("misc")
+        add_def("misc", "startup_delay", type_='int')
+        add_def("misc", "pk_assert", type_='bool')
 
         add_module('lib.mdns', {})
 

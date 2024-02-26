@@ -1,20 +1,20 @@
 #include "app.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include <WiFi.h>
 
 static const char *TAG = "main";
 
-static void setup_lib(void) {
-    pk_log_init();
+void setup() {
+    delay(CONF_MISC_STARTUP_DELAY);
 
-    const char *rp = pk_running_part_label();
-    PKLOGI("running %s parition", rp == NULL ? "UNKNOWN" : rp);
-    PKLOGI("built on " __DATE__ " at " __TIME__);
-
-#if CONF_LIB_WIFI_ENABLED
-    PK_ASSERT(pk_wifi_connect());
-#endif // CONF_LIB_WIFI_ENABLED
+    WiFi.begin(CONF_LIB_WIFI_SSID, CONF_LIB_WIFI_PASSWORD);
+    PKLOGI("connecting to %s...", CONF_LIB_WIFI_SSID);
+    PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(100);
+    }
+    PKLOGI("WiFi connection established");
+    PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
 
 #if CONF_LIB_MDNS_ENABLED
     if (!pk_mdns_init())
@@ -28,7 +28,7 @@ static void setup_lib(void) {
 #if CONF_LIB_OTA_ENABLED
     if (!ota_server_start())
         PKLOGE("failed to start ota server");
-#endif // CONF_LIB_OTA_ENABLEDB
+#endif // CONF_LIB_OTA_ENABLED
 
 #if CONF_LIB_MQTT_ENABLED
     if (!pk_mqtt_connect())
@@ -41,34 +41,8 @@ static void setup_lib(void) {
     pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
-}
 
-static void setup_app() {
-    // Put app setup code here
-    // ...
-}
-
-void setup() {
-    TickType_t start_lib_tick = xTaskGetTickCount();
-    setup_lib();
-    TickType_t end_lib_tick = xTaskGetTickCount();
-    PKLOGI("setup_lib() finished in %.1f secs", (end_lib_tick - start_lib_tick) / 1000.f);
-
-    TickType_t ticks_to_wait = PK_MAX(
-        (TickType_t)0,
-        (TickType_t)((long)start_lib_tick + (long)pdMS_TO_TICKS(CONF_MAIN_SETUP_WAIT_UNTIL_MS) -
-                     (long)end_lib_tick)
-    );
-    PKLOGI("waiting %.1f secs before setup_app() call", pdTICKS_TO_MS(ticks_to_wait) / 1000.f);
-    xTaskDelayUntil(&start_lib_tick, pdMS_TO_TICKS(CONF_MAIN_SETUP_WAIT_UNTIL_MS));
-
-    TickType_t start_app_tick = xTaskGetTickCount();
-    setup_app();
-    TickType_t end_app_tick = xTaskGetTickCount();
-    PKLOGI(
-        "setup_app() finished in %.1f secs",
-        pdTICKS_TO_MS(end_app_tick - start_app_tick) / 1000.f
-    );
+    PKLOGI("setup finished");
 }
 
 void loop() {
