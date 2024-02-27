@@ -9,6 +9,7 @@ static const char *TAG = "main";
 void setup() {
     delay(CONF_MISC_STARTUP_DELAY);
 
+#if CONF_LIB_WIFI_ENABLED
     WiFi.begin(CONF_LIB_WIFI_SSID, CONF_LIB_WIFI_PASSWORD);
     PKLOGI("connecting to %s...", CONF_LIB_WIFI_SSID);
     PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
@@ -18,6 +19,7 @@ void setup() {
     }
     PKLOGI("WiFi connection established");
     PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
+#endif // CONF_LIB_WIFI_ENABLED
 
 #if CONF_LIB_MDNS_ENABLED
     if (!pk_mdns_init())
