@@ -41,7 +41,7 @@ flash: build
 	arduino-cli upload -b ${FQBN} --input-dir ./build
 
 mon:
-	tools/mon.py ${SERIAL_FLAGS} /dev/ttyUSB0 | tools/btrace.py ${TOOLCHAIN_PATH}/xtensa-esp32-elf-addr2line build/${SKETCH}.ino.elf
+	tools/mon.py ${SERIAL_FLAGS} /dev/ttyUSB0 #| tools/btrace.py ${TOOLCHAIN_PATH}/xtensa-esp32-elf-addr2line build/${SKETCH}.ino.elf
 
 ota: build
 	tools/ota.py ${BIN_PATH} ${BOARD_HOSTNAME}

@@ -1,4 +1,6 @@
 #include "app.h"
+#include "lib/i2c_tools.h"
+#include "sensor.h"
 
 #include <WiFi.h>
 
@@ -36,7 +38,7 @@ void setup() {
 #endif // CONF_LIB_MQTT_ENABLED
 
 #if CONF_LIB_I2C_ENABLED
-    pk_i2c_begin(PK_SW_NONE);
+    pk_i2c_begin(PK_SW_PCA9547);
 #if CONF_LIB_I2C_RUN_SCANNER
     pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
@@ -46,5 +48,8 @@ void setup() {
 }
 
 void loop() {
-    vTaskDelay(1000);
+    noise_t d = get_noise();
+
+    PKLOGI("Noise: %d %d %d", d.v[0], d.v[1], d.v[2]);
+    //vTaskDelay(100);
 }
