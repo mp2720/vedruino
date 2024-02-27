@@ -156,7 +156,6 @@ if args.gen_header:
 
         add_section_comm("misc")
         add_def("misc", "startup_delay", type_='int')
-        add_def("misc", "pk_assert", type_='bool')
 
         add_module('lib.mdns', {})
 
