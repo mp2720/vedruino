@@ -13,7 +13,7 @@ void setup() {
     PKLOGI("connecting to %s...", CONF_LIB_WIFI_SSID);
     PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
     while (WiFi.status() != WL_CONNECTED) {
-        //PKLOGI("%d", WiFi.status());
+        // PKLOGI("%d", WiFi.status());
         delay(100);
     }
     PKLOGI("WiFi connection established");
@@ -44,13 +44,14 @@ void setup() {
     pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
-
-    init_fire();
-
+    PKLOGI("start init_sensors");
+    init_sensors();
     PKLOGI("setup finished");
 }
 
-
 void loop() {
 
+    float h = get_water();
+ 
+    PKLOGD("%f", h);
 }
