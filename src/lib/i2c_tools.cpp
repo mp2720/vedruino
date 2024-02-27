@@ -19,7 +19,8 @@ void pk_i2c_begin(pkI2cSwitcher_t switcher) {
     pk_i2c_mutex = xSemaphoreCreateRecursiveMutex();
     current_i2c_line = xQueueCreate(1, sizeof(int));
 
-    PK_ASSERT(pk_i2c_mutex && current_i2c_line);
+    PK_ASSERT(pk_i2c_mutex);
+    PK_ASSERT(current_i2c_line);
 
     int val = -1;
     PK_ASSERT(xQueueSend(current_i2c_line, &val, PK_I2C_MAX_WAIT_MS) == pdTRUE);
@@ -68,10 +69,11 @@ void pk_i2c_switch(int i2c_line) {
         return;
     }
 
-    pk_i2c_lock();
     if (pk_i2c_get_line() == i2c_line) {
         return;
     }
+    
+    pk_i2c_lock();
     Wire.beginTransmission(I2C_HUB_ADDR);
     if (i2c_switcher == PK_SW_PCA9547) {
         Wire.write(i2c_line | EN_MASK);

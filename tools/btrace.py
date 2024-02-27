@@ -8,7 +8,7 @@ if len(sys.argv) != 3:
     exit(1)
 
 PKBTRACE_PREF = "PKBTRACE "
-PANIC_PREF = "Backtrace: "
+PANIC_PREF = "Backtrace:"
 
 addr2line_path = sys.argv[1]
 elf_path = sys.argv[2]

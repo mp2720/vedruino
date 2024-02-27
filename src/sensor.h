@@ -12,3 +12,11 @@ typedef struct {
 } noise_t;
 
 noise_t get_noise();
+
+typedef struct {
+    float v[3];
+} fire_t;
+
+void file_calibrate();
+void init_fire();
+fire_t get_fire();

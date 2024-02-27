@@ -1,7 +1,7 @@
 #include "app.h"
 #include "lib/i2c_tools.h"
 #include "sensor.h"
-
+#include <MGS_FR403.h>
 #include <WiFi.h>
 
 static const char *TAG = "main";
@@ -13,6 +13,7 @@ void setup() {
     PKLOGI("connecting to %s...", CONF_LIB_WIFI_SSID);
     PKLOGI("board MAC: %s", WiFi.macAddress().c_str());
     while (WiFi.status() != WL_CONNECTED) {
+        //PKLOGI("%d", WiFi.status());
         delay(100);
     }
     PKLOGI("WiFi connection established");
@@ -44,12 +45,12 @@ void setup() {
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
 
+    init_fire();
+
     PKLOGI("setup finished");
 }
 
-void loop() {
-    noise_t d = get_noise();
 
-    PKLOGI("Noise: %d %d %d", d.v[0], d.v[1], d.v[2]);
-    //vTaskDelay(100);
+void loop() {
+
 }
