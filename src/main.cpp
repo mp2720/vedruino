@@ -41,19 +41,23 @@ void setup() {
 #endif // CONF_LIB_MQTT_ENABLED
 
 #if CONF_LIB_I2C_ENABLED
-    pk_i2c_begin(PK_SW_PCA9547);
+    /* pk_i2c_begin(PK_SW_PCA9547); */
 #if CONF_LIB_I2C_RUN_SCANNER
     pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
     PKLOGI("start init_sensors");
-    init_sensors();
+    /* init_sensors(); */
     PKLOGI("setup finished");
+
+    app_mqtt_init();
 }
 
 void loop() {
 
-    float h = get_water();
- 
-    PKLOGD("%f", h);
+    /* float h = get_water(); */
+
+    /* PKLOGD("%f", h); */
+    app_mqtt_sensors_send();
+    vTaskDelay(1000);
 }
