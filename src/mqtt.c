@@ -13,9 +13,9 @@ static void ctl_handler(PK_UNUSED char *topic, char *data, PK_UNUSED int len) {
 
     int flat_num;
     char ctl_name[8];
-    int n = sscanf(data, "%d%s", &flat_num, ctl_name);
+    int n = sscanf(data, "flat_num:%d;ctl_type:%s", &flat_num, ctl_name);
     if (n != 2) {
-        PKLOGE("/base/ctl parse error with data %s: %s", data, strerror(errno));
+        PKLOGE("/base/ctl parse error with data %s, n=%d", data, n);
         return;
     }
 
@@ -40,8 +40,11 @@ static float rand_float() {
     return 1000.f / (float)(1 + (rand() % 1000));
 }
 
+static pkTopic_t topics[] = {
+    {"/base/ctl", ctl_handler, 2},
+};
+
 void app_mqtt_init() {
-    pkTopic_t topics[] = {{"/base/ctl", ctl_handler, 2}};
     // clang-format off
     // app_mqtt_sensors = (struct appMqttSensors){
     //     .noise = {1, 2, 3},
@@ -77,13 +80,17 @@ void app_mqtt_sensors_send() {
         "noise:%d;%d;%d;"
         "fire:%f;%f;%f;"
         "gas:%f;%f;%f;"
+        "axel:%f;"
         "amperage:%f;"
-        "water_flow:%f",
+        "water_flow:%f;"
+        "water_overflow:%f",
         TRIPLE_VAL(app_mqtt_sensors.noise),
         TRIPLE_VAL(app_mqtt_sensors.fire),
         TRIPLE_VAL(app_mqtt_sensors.gas),
+        app_mqtt_sensors.axel,
         app_mqtt_sensors.amperage,
-        app_mqtt_sensors.water_flow
+        app_mqtt_sensors.water_flow,
+        app_mqtt_sensors.water_overflow
     );
     if (len < 0) {
         PKLOGE("/base/sensors sprintf() failed: %s", strerror(errno));
@@ -105,21 +112,6 @@ void app_mqtt_sensors_send() {
         PKLOGE("/base/sensors sending failed");
     }
 }
-
-typedef enum appNotificationType {
-    APP_NOT_EARTHQUAKE,
-    // Нужен `flat_num`
-    APP_NOT_SOUND,
-    APP_NOT_WATER_OVERFLOW,
-    // Нужен `flat_num`
-    APP_NOT_GAS_LEAK,
-    // Нужен `flat_num`
-    APP_NOT_GAS_LEAK_CALL_ROBOT,
-    // Нужен `flat_num`
-    APP_NOT_FIRE,
-    // Нужен `flat_num`
-    APP_NOT_FIRE_CALL_ROBOT
-} appNotificationType_t;
 
 // https://github.com/mp1884/nto_topics/blob/main/README.md#basenots
 void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
@@ -158,4 +150,5 @@ void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
         PKLOGE("/base/nots buf is too small");
         return;
     }
+    pk_mqtt_publish("/base/nots", buf, len, 2, false);
 }

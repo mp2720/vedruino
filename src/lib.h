@@ -2,3 +2,4 @@
 
 #define PK_LIB_INCLUDE_FROM_APP
 #include "lib/inc.h"
+#include "led_strip.h"

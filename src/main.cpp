@@ -20,6 +20,7 @@ void setup() {
     PKLOGI("WiFi connection established");
     PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
 #endif // CONF_LIB_WIFI_ENABLED
+       //
 
 #if CONF_LIB_MDNS_ENABLED
     if (!pk_mdns_init())
@@ -41,23 +42,43 @@ void setup() {
 #endif // CONF_LIB_MQTT_ENABLED
 
 #if CONF_LIB_I2C_ENABLED
-    /* pk_i2c_begin(PK_SW_PCA9547); */
+    pk_i2c_begin(PK_SW_PCA9547);
 #if CONF_LIB_I2C_RUN_SCANNER
     pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
     PKLOGI("start init_sensors");
+
+    /* app_relay_init(); */
+    app_mqtt_init();
+
+    app_led_strip_init();
+
     /* init_sensors(); */
     PKLOGI("setup finished");
-
-    app_mqtt_init();
 }
 
 void loop() {
+    /* app_relay_test(); */
 
-    /* float h = get_water(); */
+    /* app_mqtt_sensors.noise[1] = 1488; */
+    /* app_mqtt_sensors_send(); */
+    /* delay(5000); */
+    /* app_mqtt_send_notification(APP_NOT_SOUND, 1); */
 
-    /* PKLOGD("%f", h); */
-    app_mqtt_sensors_send();
-    vTaskDelay(1000);
+    app_led_strip_set_color(1, APP_LED_RED);
+    delay(1000);
+    app_led_strip_set_color(2, APP_LED_YELLOW);
+    delay(1000);
+    app_led_strip_set_color(3, APP_LED_VIOLET);
+    delay(1000);
+
+    /* app_relay_set(0, 1); */
+    /* delay(2000); */
+    /* app_relay_set(0, 0); */
+    /* delay(2000); */
+    /* app_relay_set(1, 1); */
+    /* delay(2000); */
+    /* app_relay_set(1, 0); */
+    delay(5000);
 }

@@ -135,7 +135,8 @@ static pkSendStatus_t handle_send(int *retries, ssize_t written) {
             PKLOGW("send failed on ENOMEM, retrying...");
             return SEND_RETRY;
         } else {
-            PKLOGE("send() %s", strerror(errno));
+            /* PKLOGE("send() %s", strerror(errno)); */
+            PKLOGE("send()");
             return SEND_ERR;
         }
     }
