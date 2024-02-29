@@ -1,6 +1,7 @@
 #include "app.h"
 
-#include <errno.h>
+#if CONF_LIB_MQTT_ENABLED
+
 #include <stdio.h>
 
 const char *TAG = "app.mqtt";
@@ -12,9 +13,10 @@ static void ctl_handler(PK_UNUSED char *topic, char *data, PK_UNUSED int len) {
     PKLOGI("/base/ctl got msg: '%s'", data);
 
     int flat_num;
+    int state;
     char ctl_name[8];
-    int n = sscanf(data, "flat_num:%d;ctl_type:%s", &flat_num, ctl_name);
-    if (n != 2) {
+    int n = sscanf(data, "flat_num:%d;state:%d;ctl_type:%s", &flat_num, &state, ctl_name);
+    if (n != 3) {
         PKLOGE("/base/ctl parse error with data %s, n=%d", data, n);
         return;
     }
@@ -31,6 +33,8 @@ static void ctl_handler(PK_UNUSED char *topic, char *data, PK_UNUSED int len) {
     } else if (strcmp(ctl_name, "street") == 0) {
         PKLOGI("street lamp switch");
         // street
+    } else if (strcmp(ctl_name, "gas_leak")) {
+        // gas_leak
     } else {
         PKLOGE("/base/ctl unknown ctl_name='%s'", ctl_name);
     }
@@ -101,7 +105,7 @@ void app_mqtt_sensors_send() {
         return;
     }
 
-    PKLOGV("sending to /base/sensors: %s", buf);
+    PKLOGW("sending to /base/sensors: %s", buf);
 
     if (len < 0) {
         PKLOGE("/base/sensors failed to sprintf(): %s", strerror(errno));
@@ -152,3 +156,5 @@ void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
     }
     pk_mqtt_publish("/base/nots", buf, len, 2, false);
 }
+
+#endif // CONF_LIB_MQTT_ENABLED

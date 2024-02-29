@@ -1,23 +1,39 @@
-#include <Arduino.h>
-#include "mcp3021.h"
-#include "MCP3221.h"
-#include "SparkFun_SGP30_Arduino_Library.h"
-#include "lib.h"
-#include "lib/i2c_tools.h"
-#include "lib/pk_assert.h"
-#include "sensor.h"
+#include "app.h"
+
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#include <Arduino.h>
+#include <MCP3221.h>
 #include <MGS_FR403.h>
-
+#include <SparkFun_SGP30_Arduino_Library.h>
+#include <mcp3021.h>
 
 static const char *TAG = "sensors";
 
+extern appSensorData_t app_sensors;
+
+static void poll_noise();
+static void fire_init();
+static void fire_poll();
+static void axel_init();
+static void axel_poll();
+static void gas_init();
+static void gas_poll();
+static void water_init();
+static void water_poll();
+
+void app_sensors_init() {
+    /* fire_init(); */
+    /* axel_init(); */
+    /* gas_init(); */
+    /* water_init(); */
+}
+
 // датчик звука
-MCP3221 noise1(0x4e);
-MCP3221 noise2(0x4e);
-MCP3221 noise3(0x4e);
-noise_t get_noise() {
+static MCP3221 noise1(0x4e);
+static MCP3221 noise2(0x4e);
+static MCP3221 noise3(0x4e);
+static void poll_noise() {
     float res[3];
 
     pk_i2c_lock();
@@ -39,19 +55,16 @@ noise_t get_noise() {
         PKLOGE("Noise sensor on 0x4e - 5 err");
     }
 
-    noise_t ret;
-    ret.v[0] = (int)fabs(1250.f - res[0]);
-    ret.v[1] = (int)fabs(1250.f - res[1]);
-    ret.v[2] = (int)fabs(1250.f - res[2]);
-
-    return ret;
+    app_sensors.noise[0] = (int)fabs(1250.f - res[0]);
+    app_sensors.noise[1] = (int)fabs(1250.f - res[1]);
+    app_sensors.noise[2] = (int)fabs(1250.f - res[2]);
 }
 
 #define FIRE_ADDR 0x39
 
 static float fire_default_ir[3];
 
-void fire_calibrate() {
+void app_sensors_calibrate_fire() {
     pk_i2c_lock();
     const int num = 10;
     for (int j = 0; j < num; j++) {
@@ -80,7 +93,7 @@ void fire_calibrate() {
     }
 }
 
-void init_fire() {
+static void fire_init() {
     // PKLOGI("Start init fire");
     pk_i2c_lock();
     for (int i = 0; i < 3; i++) {
@@ -104,11 +117,10 @@ void init_fire() {
         Wire.endTransmission();
     }
     pk_i2c_unlock();
-    fire_calibrate();
+    app_sensors_calibrate_fire();
 }
 
-fire_t get_fire() {
-    fire_t res;
+static void fire_poll() {
     pk_i2c_lock();
     for (int i = 0; i < 3; i++) {
         pk_i2c_switch(5 + i);
@@ -123,15 +135,14 @@ fire_t get_fire() {
             sensor_data[2] = Wire.read();
             sensor_data[3] = Wire.read();
         }
-        res.v[i] = (sensor_data[3] * 256.0 + sensor_data[2]) / fire_default_ir[i];
+        app_sensors.fire[i] = (sensor_data[3] * 256.0 + sensor_data[2]) / fire_default_ir[i];
     }
     pk_i2c_unlock();
-    return res;
 }
 
 Adafruit_MPU6050 mpu;
 
-void init_axel() {
+static void axel_init() {
     pk_i2c_lock();
     if (!mpu.begin(0x69)) {
         PKLOGE("Failed to find MPU6050 chip");
@@ -142,23 +153,23 @@ void init_axel() {
     pk_i2c_unlock();
 }
 
-float get_axel() {
+static void axel_poll() {
     sensors_event_t a, g, temp;
     pk_i2c_lock();
     mpu.getEvent(&a, &g, &temp);
     pk_i2c_unlock();
-    return sqrtf(
-               a.acceleration.x * a.acceleration.x + a.acceleration.y * a.acceleration.y +
-               a.acceleration.z * a.acceleration.z
-           ) -
-           9.8;
+    app_sensors.axel = sqrtf(
+                           a.acceleration.x * a.acceleration.x +
+                           a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z
+                       ) -
+                       9.8;
 }
 
-SGP30 sgp30_1;
-SGP30 sgp30_2;
-SGP30 sgp30_3;
+static SGP30 sgp30_1;
+static SGP30 sgp30_2;
+static SGP30 sgp30_3;
 
-void init_air() {
+static void gas_init() {
     pk_i2c_lock();
     pk_i2c_switch(5);
     if (sgp30_1.begin() == false) {
@@ -178,9 +189,7 @@ void init_air() {
     pk_i2c_unlock();
 }
 
-air_t get_air() {
-    air_t res;
-
+static void gas_poll() {
     pk_i2c_lock();
     pk_i2c_switch(5);
     sgp30_1.measureAirQuality();
@@ -190,22 +199,21 @@ air_t get_air() {
     sgp30_3.measureAirQuality();
     pk_i2c_unlock();
 
-    res.v[0] = sgp30_1.CO2;
-    res.v[1] = sgp30_2.CO2;
-    res.v[2] = sgp30_3.CO2;
-
-    return res;
+    app_sensors.gas[0] = sgp30_1.CO2;
+    app_sensors.gas[1] = sgp30_2.CO2;
+    app_sensors.gas[2] = sgp30_3.CO2;
 }
 
 // протечка
-MCP3021 mcp3021;
-void init_water() {
+static MCP3021 mcp3021;
+
+static void water_init() {
     pk_i2c_lock();
     mcp3021.begin(0x4d);
     pk_i2c_unlock();
 }
 
-float get_water() {
+static void water_poll() {
     const float air_value = 561.0;
     const float water_value = 293.0;
     const float moisture_0 = 0.0;
@@ -214,12 +222,5 @@ float get_water() {
     float adc0 = mcp3021.readADC();
     pk_i2c_unlock();
     float h = map(adc0, air_value, water_value, moisture_0, moisture_100);
-    return h;
-}
-
-void init_sensors() {
-    // init_fire();
-    // init_axel();
-    // init_air();
-    init_water();
+    app_sensors.water_flow = h;
 }

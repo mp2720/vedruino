@@ -51,7 +51,7 @@ void pk_ip_addr2str(pkIpAddr_t addr, char str[PK_IP_ADDR_STR_LEN]) {
 static pkSocketHandle_t create_srv_sock(uint16_t port, sa_family_t family) {
     pkSocketHandle_t srvhd = socket(AF_INET, family, 0);
     if (srvhd < 0) {
-        PKLOGE("socket() %s", strerror(errno));
+        /* PKLOGE("socket() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
 
@@ -62,7 +62,7 @@ static pkSocketHandle_t create_srv_sock(uint16_t port, sa_family_t family) {
     saddr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(srvhd, (struct sockaddr *)&saddr, sizeof saddr) < 0) {
-        PKLOGE("bind() %s", strerror(errno));
+        /* PKLOGE("bind() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
 
@@ -75,7 +75,7 @@ pkTcpServer_t pk_tcp_server(uint16_t port, int backlog) {
         return PK_SOCKERR;
 
     if (listen(srvhd, backlog) < 0) {
-        PKLOGE("listen() %s", strerror(errno));
+        /* PKLOGE("listen() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
 
@@ -89,7 +89,7 @@ pkUdpHandle_t pk_udp_server(uint16_t port) {
 static pkSocketHandle_t handle_client(int type) {
     pkSocketHandle_t clhd = socket(AF_INET, type, 0);
     if (clhd < 0) {
-        PKLOGE("socket() %s", strerror(errno));
+        /* PKLOGE("socket() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
     return clhd;
@@ -106,7 +106,7 @@ pkUdpHandle_t pk_udp_client() {
 bool pk_tcp_connect(pkTcpClient_t chd, pkIpAddr_t srv_addr) {
     struct sockaddr_in saddr = get_sockaddr(srv_addr);
     if (connect(chd, (struct sockaddr *)&saddr, sizeof saddr) < 0) {
-        PKLOGE("connect() %s", strerror(errno));
+        /* PKLOGE("connect() %s", strerror(errno)); */
         return false;
     }
     return true;
@@ -117,7 +117,7 @@ pkTcpClient_t pk_tcp_accept(pkTcpServer_t shd, pkIpAddr_t *out_cl_addr) {
     socklen_t saddr_len = sizeof saddr;
     pkSocketHandle_t chd = accept(shd, (struct sockaddr *)&saddr, &saddr_len);
     if (chd < 0) {
-        PKLOGE("accept() %s", strerror(errno));
+        /* PKLOGE("accept() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
 
@@ -132,11 +132,11 @@ pkTcpClient_t pk_tcp_accept(pkTcpServer_t shd, pkIpAddr_t *out_cl_addr) {
 static pkSendStatus_t handle_send(int *retries, ssize_t written) {
     if (written < 0) {
         if (errno == ENOMEM && (*retries)++ < MAX_RETRIES_ON_ENOMEM) {
-            PKLOGW("send failed on ENOMEM, retrying...");
+            /* PKLOGW("send failed on ENOMEM, retrying..."); */
             return SEND_RETRY;
         } else {
             /* PKLOGE("send() %s", strerror(errno)); */
-            PKLOGE("send()");
+            /* PKLOGE("send()"); */
             return SEND_ERR;
         }
     }
@@ -170,7 +170,7 @@ ssize_t pk_udp_send(pkUdpHandle_t hd, pkIpAddr_t addr, const void *buf, size_t n
 
 static bool handle_n_func(const char *func_name, ssize_t processed, size_t exp) {
     if (processed != (ssize_t)exp) {
-        PKLOGE("%s() processed %zd bytes, while %zd was expected", func_name, processed, exp);
+        /* PKLOGE("%s() processed %zd bytes, while %zd was expected", func_name, processed, exp); */
         return false;
     }
     return true;
@@ -197,7 +197,7 @@ bool pk_udp_sendn(pkUdpHandle_t chd, pkIpAddr_t addr, const void *buf, size_t n)
 ssize_t pk_tcp_recv(pkTcpClient_t chd, void *buf, size_t max_n) {
     ssize_t rd = read(chd, buf, max_n);
     if (rd < 0) {
-        PKLOGE("read() %s", strerror(errno));
+        /* PKLOGE("read() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
     return rd;
@@ -208,7 +208,7 @@ ssize_t pk_udp_recv(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t max_n) 
     socklen_t saddr_len = sizeof saddr;
     ssize_t rcv = recvfrom(hd, buf, max_n, 0, (struct sockaddr *)&saddr, &saddr_len);
     if (rcv < 0) {
-        PKLOGE("recvfrom() %s", strerror(errno));
+        /* PKLOGE("recvfrom() %s", strerror(errno)); */
         return PK_SOCKERR;
     }
     return rcv;
@@ -239,7 +239,7 @@ bool pk_udp_recvn(pkUdpHandle_t hd, pkIpAddr_t addr, void *buf, size_t n) {
 bool pk_sock_close(pkSocketHandle_t hd) {
     int ret = close(hd);
     if (ret < 0) {
-        PKLOGE("close() %s", strerror(errno));
+        /* PKLOGE("close() %s", strerror(errno)); */
         return false;
     }
     return true;

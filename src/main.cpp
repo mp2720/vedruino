@@ -1,8 +1,8 @@
 #include "app.h"
-#include "lib/i2c_tools.h"
-#include "sensor.h"
+
 #include <MGS_FR403.h>
 #include <WiFi.h>
+#include <freertos/FreeRTOS.h>
 
 static const char *TAG = "main";
 
@@ -20,7 +20,6 @@ void setup() {
     PKLOGI("WiFi connection established");
     PKLOGI("board IP: %s", WiFi.localIP().toString().c_str());
 #endif // CONF_LIB_WIFI_ENABLED
-       //
 
 #if CONF_LIB_MDNS_ENABLED
     if (!pk_mdns_init())
@@ -41,44 +40,47 @@ void setup() {
         PKLOGE("failed to connect mqtt");
 #endif // CONF_LIB_MQTT_ENABLED
 
-#if CONF_LIB_I2C_ENABLED
-    pk_i2c_begin(PK_SW_PCA9547);
-#if CONF_LIB_I2C_RUN_SCANNER
-    pk_i2c_scan();
-#endif // CONF_LIB_I2C_RUN_SCANNER
-#endif // CONF_LIB_I2C_ENABLED
+/* #if CONF_LIB_I2C_ENABLED */
+/*     pk_i2c_begin(PK_SW_PCA9547); */
+/* #if CONF_LIB_I2C_RUN_SCANNER */
+/*     pk_i2c_scan(); */
+/* #endif // CONF_LIB_I2C_RUN_SCANNER */
+/* #endif // CONF_LIB_I2C_ENABLED */
     PKLOGI("start init_sensors");
 
-    /* app_relay_init(); */
+#if CONF_LIB_MQTT_ENABLED
     app_mqtt_init();
+#endif // CONF_LIB_MQTT_ENABLED
 
-    app_led_strip_init();
+    /* app_led_strip_init(); */
+    /* app_doors_init(); */
+    /* app_sensors_init(); */
 
     /* init_sensors(); */
     PKLOGI("setup finished");
 }
 
+// Если 0, то громкого звука не было в течении как минимум 5 секунд.
+static TickType_t loud_sound_start;
+static int loud_sound_flat_num;
+
 void loop() {
-    /* app_relay_test(); */
+    PKLOGI("loop started");
+    /* TickType_t loop_start = xTaskGetTickCount(); */
 
-    /* app_mqtt_sensors.noise[1] = 1488; */
-    /* app_mqtt_sensors_send(); */
+    /* if (loud_sound_start != 0 && loop_start - loud_sound_start > pdMS_TO_TICKS(5000)) { */
+    /*     app_mqtt_send_notification(APP_NOT_SOUND, loud_sound_flat_num); */
+    /* } */
+
+    /* app_sensors_poll(); */
+
+    /* for (int i = 0; i < 3; ++i) { */
+    /*     app_sensors.noise[3]; */
+    /* } */
+
+/* #if CONF_LIB_MQTT_ENABLED */
+/*     app_mqtt_sensors_send(); */
+/* #endif // CONF_LIB_MQTT_ENABLED */
+
     /* delay(5000); */
-    /* app_mqtt_send_notification(APP_NOT_SOUND, 1); */
-
-    app_led_strip_set_color(1, APP_LED_RED);
-    delay(1000);
-    app_led_strip_set_color(2, APP_LED_YELLOW);
-    delay(1000);
-    app_led_strip_set_color(3, APP_LED_VIOLET);
-    delay(1000);
-
-    /* app_relay_set(0, 1); */
-    /* delay(2000); */
-    /* app_relay_set(0, 0); */
-    /* delay(2000); */
-    /* app_relay_set(1, 1); */
-    /* delay(2000); */
-    /* app_relay_set(1, 0); */
-    delay(5000);
 }

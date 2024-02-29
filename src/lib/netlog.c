@@ -384,7 +384,7 @@ static void flush_with_shstack(void) {
     // avoid recursion
     stdout = pk_log_uartout;
 
-    /* PKLOGD_UART("sending %.*s", flush_with_shstack_n, flush_with_shstack_buf_ptr); */
+    /* esp_rom_printf("sending %d\n", flush_with_shstack_n); */
 
     size_t sent = 0;
     while (sent < (size_t)flush_with_shstack_n) {

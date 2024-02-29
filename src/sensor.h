@@ -19,37 +19,18 @@ gp 23-5 line 4
 // акселерометр MPU6050 0x69 - all
 // датчик уровня воды 0x4d - all
 
-void init_sensors();
-
-// звук
 typedef struct {
-    int v[3];
-} noise_t;
+    int noise[3];
+    float fire[3];
+    float gas[3];
+    float axel;
+    float amperage;
+    float water_flow;
+    float water_overflow;
+} appSensorData_t;
 
-noise_t get_noise(); // более 100 есть шум
+extern appSensorData_t app_sensors;
 
-// огонь
-typedef struct {
-    float v[3];
-} fire_t;
-
-void fire_calibrate();
-void init_fire();
-fire_t get_fire();
-
-// землетрясение
-
-void init_axel();
-float get_axel();
-
-// газы
-typedef struct {
-    float v[3];
-} air_t;
-
-void init_air();
-air_t get_air();
-
-//протечка
-void init_water();
-float get_water();
+void app_sensors_init();
+void app_sensors_poll();
+void app_sensors_calibrate_fire();

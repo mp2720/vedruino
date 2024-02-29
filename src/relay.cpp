@@ -12,9 +12,7 @@ void app_relay_init() {
     pca9536.setMode(IO_OUTPUT);
 }
 
-void app_relay_set(int sel, int state) {
-    PKLOGI("switch to %d", sel);
-
+void app_relay_set(int sel, bool state) {
     if (sel == 0) {
         pca9536.setState(IO0, state ? IO_HIGH : IO_LOW);
     } else {
