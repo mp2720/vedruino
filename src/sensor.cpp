@@ -51,7 +51,7 @@ void app_sensors_poll() {
     axel_poll();
     water_overflow_poll();
     poll_noise();
-    /* amperage_poll(); */
+    amperage_poll();
 }
 
 // датчик звука
