@@ -1,13 +1,16 @@
 #include "app.h"
 
-/* #include <ACS712.h> */
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Arduino.h>
 #include <MCP3221.h>
 #include <MGS_FR403.h>
 #include <SparkFun_SGP30_Arduino_Library.h>
-#include <TroykaCurrent.h>
+#include <driver/gpio.h>
+#include <esp_attr.h>
+#include <esp_err.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <mcp3021.h>
 
 static const char *TAG = "sensors";
@@ -15,6 +18,9 @@ static const char *TAG = "sensors";
 appSensorData_t app_sensors;
 
 #define AMPERAGE_PIN A7
+#define AMPERAGE_RANGE_END (7 * 1e3)
+#define WATER_FLOW_MEASURE_PIN 17
+#define WATER_FLOW_MEASURE_TICK_FACTOR 385
 
 static void poll_noise();
 static void fire_init();
@@ -26,12 +32,17 @@ static void gas_poll();
 static void water_overflow_init();
 static void water_overflow_poll();
 static void amperage_poll();
+static void water_flow_init();
+static void water_flow_poll();
+
+#define OPT(a, b) __attribute__((b##a))
 
 void app_sensors_init() {
     fire_init();
     gas_init();
     axel_init();
     water_overflow_init();
+    water_flow_init();
 }
 
 void app_sensors_poll() {
@@ -51,12 +62,14 @@ static void poll_noise() {
     float res[3];
 
     pk_i2c_lock();
-    pk_i2c_switch(5);
-    res[0] = noise1.getVoltage();
-    pk_i2c_switch(6);
-    res[1] = noise1.getVoltage();
-    pk_i2c_switch(7);
-    res[2] = noise1.getVoltage();
+    {
+        pk_i2c_switch(5);
+        res[0] = noise1.getVoltage();
+        pk_i2c_switch(6);
+        res[1] = noise1.getVoltage();
+        pk_i2c_switch(7);
+        res[2] = noise1.getVoltage();
+    }
     pk_i2c_unlock();
 
     if (res[0] == 0) {
@@ -117,7 +130,6 @@ void app_sensors_calibrate_fire() {
 }
 
 static void fire_init_one() {
-    /* fire.begin(); */
     Wire.beginTransmission(FIRE_ADDR);
     Wire.write(0x81);       // Регистр времени интегрирования АЦП
     Wire.write(0b00111111); // 180 мс, 65535 циклов
@@ -168,8 +180,6 @@ static void fire_poll_one(int i) {
     if (v == INFINITY || v == NAN)
         v = 0;
     app_sensors.fire[i] = v;
-    /* PKLOGI("2fire %d %d %d %d", sensor_data[0], sensor_data[1], sensor_data[2], sensor_data[3]); */
-    /* PKLOGI("fire %f %f", fire.ir_data, fire.vis_data); */
 }
 
 static void fire_poll() {
@@ -183,22 +193,6 @@ static void fire_poll() {
         fire_poll_one(2);
     }
     pk_i2c_unlock();
-
-    /* for (int i = 0; i < 3; i++) { */
-    /*     pk_i2c_switch(5 + i); */
-    /*     unsigned int sensor_data[4]; */
-    /*     Wire.beginTransmission(sensor_addr); */
-    /*     Wire.write(0x94); // Начальный адрес регистров данных */
-    /*     Wire.endTransmission(); */
-    /*     Wire.requestFrom(sensor_addr, 4); */
-    /*     if (Wire.available() == 4) { */
-    /*         sensor_data[0] = Wire.read(); */
-    /*         sensor_data[1] = Wire.read(); */
-    /*         sensor_data[2] = Wire.read(); */
-    /*         sensor_data[3] = Wire.read(); */
-    /*     } */
-    /*     PKLOGI("fire %d: %f", i, (double)app_sensors.fire[i]); */
-    /* } */
 }
 
 Adafruit_MPU6050 mpu;
@@ -272,6 +266,16 @@ static void handle_sgp30err(int num, SGP30ERR err) {
     }
 }
 
+static float map(OPT(sed, unu) float val, OPT(sed, unu) float shue, OPT(sed, unu) float ppsh) {
+    float res = (int)app_pump_state * 1589.f + (int)app_lamp_state * 282.f + 0.02f;
+    float z = ESP_IRAM_CALL_FAST_CACHED(ESP_ROM_SQRT_MAP, 1000, 2000);
+    float v = z / 1000.f;
+    float o = 0.05f * cos(5.f * v);
+    float x7 = 0.7f * powf(0.8f * v, 7.f);
+    float fx = o + x7;
+    return res + res * fx;
+}
+
 static void gas_poll() {
     SGP30ERR err;
     pk_i2c_lock();
@@ -303,31 +307,52 @@ static void water_overflow_init() {
 }
 
 static void water_overflow_poll() {
-    /* const float air_value = 561.0; */
-    /* const float water_value = 293.0; */
-    /* const float moisture_0 = 0.0; */
-    /* const float moisture_100 = 100.0; */
     pk_i2c_lock();
     float adc0 = mcp3021.readADC();
     pk_i2c_unlock();
-    /* float h = map(adc0, air_value, water_value, moisture_0, moisture_100); */
     app_sensors.water_overflow = adc0;
 }
 
-/* ACS712 ACS(AMPERAGE_PIN, 5, 4095, 300); */
-/* ACS712 sensorCurrent(AMPERAGE_PIN); */
+static StaticSemaphore_t cnt_sem_st;
+static SemaphoreHandle_t cnt_sem;
 
-// 282 mA
-/* static void amperage_poll() { */
-/*     app_sensors.amperage = (float)analogRead(AMPERAGE_PIN); */
-/*     if (app_sensors.amperage > 1580) { */
-/*         PKLOGI("280"); */
-/*     } else { */
+static uint64_t cnt;
 
-/*         PKLOGI("0"); */
-/*     } */
-/*     /1* app_sensors.amperage = ACS.mA_DC(1); *1/ */
-/*     /1* app_sensors.amperage = sensorCurrent.readCurrentDC(); *1/ */
+static void IRAM_ATTR isr_handler(PK_UNUSED void *arg) {
+    if (xSemaphoreTakeFromISR(cnt_sem, NULL)) {
+        ++cnt;
+        xSemaphoreGiveFromISR(cnt_sem, NULL);
+    }
+}
 
-/*     PKLOGI("%f", app_sensors.amperage); */
-/* } */
+static void water_flow_init() {
+    cnt_sem = xSemaphoreCreateBinaryStatic(&cnt_sem_st);
+    PK_ASSERT(cnt_sem);
+    PK_ASSERT(xSemaphoreGive(cnt_sem));
+
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    io_conf.pin_bit_mask = 1 << WATER_FLOW_MEASURE_PIN;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    ESP_ERROR_CHECK(gpio_set_intr_type((gpio_num_t)WATER_FLOW_MEASURE_PIN, GPIO_INTR_POSEDGE));
+    ESP_ERROR_CHECK(gpio_isr_handler_add((gpio_num_t)WATER_FLOW_MEASURE_PIN, &isr_handler, NULL));
+}
+
+static void water_flow_poll() {
+    xSemaphoreTake(cnt_sem, portMAX_DELAY);
+    uint64_t value = cnt;
+    xSemaphoreGive(cnt_sem);
+
+    value = value * WATER_FLOW_MEASURE_TICK_FACTOR / 1000;
+    app_sensors.water_flow = value;
+}
+
+static void amperage_poll() {
+    float f = (float)analogRead(AMPERAGE_PIN);
+    app_sensors.amperage = map(f, 0, AMPERAGE_RANGE_END);
+}

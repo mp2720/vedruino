@@ -2,6 +2,8 @@
 
 #include "lib.h"
 
+extern bool app_pump_state, app_lamp_state;
+
 void app_ctl_init();
 
 void app_pump_switch(bool state);

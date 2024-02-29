@@ -14,6 +14,8 @@ static void relay_init();
 static void relay_set(int sel, bool state);
 static void servo_init();
 
+bool app_pump_state, app_lamp_state;
+
 void app_ctl_init() {
     led_strip_init();
     relay_init();
@@ -89,27 +91,33 @@ static void relay_init() {
 }
 
 static void relay_set(int sel, bool state) {
-    pk_i2c_lock();
-    {
-        pk_i2c_switch(5);
-        if (sel == 0) {
-            pca9536.setState(IO0, state ? IO_HIGH : IO_LOW);
-        } else {
-            pca9536.setState(IO1, state ? IO_HIGH : IO_LOW);
-        }
+    pk_i2c_switch(5);
+    if (sel == 0) {
+        pca9536.setState(IO0, state ? IO_HIGH : IO_LOW);
+    } else {
+        pca9536.setState(IO1, state ? IO_HIGH : IO_LOW);
     }
-    pk_i2c_unlock();
 }
 
 #define PUMP_RELAY_SELECT 1
 #define LAMP_RELAY_SELECT 0
 
 void app_pump_switch(bool state) {
-    relay_set(PUMP_RELAY_SELECT, !state);
+    pk_i2c_lock();
+    {
+        app_pump_state = state;
+        relay_set(PUMP_RELAY_SELECT, !state);
+    }
+    pk_i2c_unlock();
 }
 
 void app_lamp_switch(bool state) {
-    relay_set(LAMP_RELAY_SELECT, state);
+    pk_i2c_lock();
+    {
+        app_lamp_state = state;
+        relay_set(LAMP_RELAY_SELECT, state);
+    }
+    pk_i2c_unlock();
 }
 
 static const int servo_pins[3] = {5, 19, 23};

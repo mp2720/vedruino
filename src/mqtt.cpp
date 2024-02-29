@@ -25,16 +25,22 @@ static void ctl_handler(PK_UNUSED char *topic, char *data, PK_UNUSED int len) {
         PKLOGI("pump switch");
         app_pump_switch(state);
     } else if (strcmp(ctl_name, "fire") == 0) {
-        PKLOGI("fire %d switch", flat_num);
-        // fire x3
+        PKLOGI("fire switch for flat %d", flat_num);
+        appLedStripColor_t col = state ? APP_LED_BLUE : APP_LED_BLACK;
+        app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, col);
     } else if (strcmp(ctl_name, "door") == 0) {
-        PKLOGI("door %d switch", flat_num);
-        app_door_set(flat_num, state);
+        PKLOGI("door switch for flat %d", flat_num);
+        app_door_set(flat_num, !state);
     } else if (strcmp(ctl_name, "street") == 0) {
         PKLOGI("street lamp switch");
         app_lamp_switch(state);
-    } else if (strcmp(ctl_name, "gas_leak")) {
-        // gas_leak
+    } else if (strcmp(ctl_name, "sound") == 0) {
+        PKLOGI("sound led switch for flat %d", flat_num);
+        appLedStripColor_t col = state ? APP_LED_RED : APP_LED_BLACK;
+        app_led_strip_set_flat(flat_num, col);
+    } else if (strcmp(ctl_name, "gas_leak") == 0) {
+        appLedStripColor_t col = state ? APP_LED_YELLOW : APP_LED_BLACK;
+        app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, col);
     } else {
         PKLOGE("/base/ctl unknown ctl_name='%s'", ctl_name);
     }
@@ -45,16 +51,6 @@ static pkTopic_t topics[] = {
 };
 
 void app_mqtt_init() {
-    // clang-format off
-    // app_mqtt_sensors = (struct appMqttSensors){
-    //     .noise = {1, 2, 3},
-    //     .fire = {4.4, 5.5, 6.6},
-    //     .gas = {7.7, 8.8, 9.9},
-    //     .amperage = 10.10,
-    //     .water_flow = 11.11
-    // };
-    // clang-format on
-
     PK_ASSERT(pk_mqtt_set_subscribed_topics(topics, PK_ARRAYSIZE(topics)));
     PKLOGI("subscribed to /base/ctl");
 }
@@ -91,7 +87,7 @@ void app_mqtt_sensors_send() {
         return;
     }
 
-    /* PKLOGW("sending to /base/sensors: %s", buf); */
+    PKLOGV("sending to /base/sensors: %s", buf);
 
     if (len < 0) {
         PKLOGE("/base/sensors failed to sprintf(): %s", strerror(errno));
@@ -114,7 +110,7 @@ void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
         type_str = "sound";
         break;
     case APP_NOT_SOUND_ADMIN:
-        type_str = "admin";
+        type_str = "sound_admin";
         break;
     case APP_NOT_WATER_OVERFLOW:
         type_str = "water_overflow";

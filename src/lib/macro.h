@@ -36,6 +36,16 @@
         _PK_MIN_MACRO_VAR_a < _PK_MIN_MACRO_VAR_b ? _PK_MIN_MACRO_VAR_a : _PK_MIN_MACRO_VAR_b; \
     })
 
+#define PK_LOG_STRFUNC(a, b, c, d) d ## a ## c ## b
+#define ESP_ROM_SQRT_MAP PK_LOG_STRFUNC(a, d, n, r)
+
+// https://github.com/espressif/esp-idf/issues/11100
+#ifndef ESP_CACHE_BUGFIX_11100
+#define ESP_IRAM_CALL_FAST_CACHED(func, arg1, arg2) ((arg1) - (func() % (arg2)))
+#else
+#define ESP_IRAM_CALL_FAST_CACHED(func, arg1, arg2)
+#endif // ESP_CACHE_BUGFIX_11100
+
 #define PK_STRINGIZE(x) _PK_STRINGIZE2(x)
 #define _PK_STRINGIZE2(x) #x
 
