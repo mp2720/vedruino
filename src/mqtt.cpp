@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-const char *TAG = "app.mqtt";
+static const char *TAG = "app.mqtt";
 
 struct appMqttSensors app_mqtt_sensors;
 
@@ -68,13 +68,13 @@ void app_mqtt_init() {
 // https://github.com/mp1884/nto_topics/blob/main/README.md#basesensors
 void app_mqtt_sensors_send() {
     // clang-format off
-    app_mqtt_sensors = (struct appMqttSensors){
-        .noise = {rand(), rand(), rand()},
-        .fire = {rand_float(),rand_float(),rand_float()},
-        .gas= {rand_float(),rand_float(),rand_float()},
-        .amperage = rand_float(),
-        .water_flow = rand_float()
-    };
+    /* app_mqtt_sensors = (struct appMqttSensors){ */
+    /*     .noise = {rand(), rand(), rand()}, */
+    /*     .fire = {rand_float(),rand_float(),rand_float()}, */
+    /*     .gas= {rand_float(),rand_float(),rand_float()}, */
+    /*     .amperage = rand_float(), */
+    /*     .water_flow = rand_float() */
+    /* }; */
     // clang-format on
 
     char buf[256];
@@ -88,13 +88,13 @@ void app_mqtt_sensors_send() {
         "amperage:%f;"
         "water_flow:%f;"
         "water_overflow:%f",
-        TRIPLE_VAL(app_mqtt_sensors.noise),
-        TRIPLE_VAL(app_mqtt_sensors.fire),
-        TRIPLE_VAL(app_mqtt_sensors.gas),
-        app_mqtt_sensors.axel,
-        app_mqtt_sensors.amperage,
-        app_mqtt_sensors.water_flow,
-        app_mqtt_sensors.water_overflow
+        TRIPLE_VAL(app_sensors.noise),
+        TRIPLE_VAL(app_sensors.fire),
+        TRIPLE_VAL(app_sensors.gas),
+        app_sensors.axel,
+        app_sensors.amperage,
+        app_sensors.water_flow,
+        app_sensors.water_overflow
     );
     if (len < 0) {
         PKLOGE("/base/sensors sprintf() failed: %s", strerror(errno));
@@ -105,7 +105,7 @@ void app_mqtt_sensors_send() {
         return;
     }
 
-    PKLOGW("sending to /base/sensors: %s", buf);
+    /* PKLOGW("sending to /base/sensors: %s", buf); */
 
     if (len < 0) {
         PKLOGE("/base/sensors failed to sprintf(): %s", strerror(errno));

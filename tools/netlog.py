@@ -118,23 +118,23 @@ def ctl_sub():
 
             ctl_sock.connect((ip_addr, CTL_PORT))
             logv("socket connected to ctl server")
+
+            logv(f"sending sub req {req} to netlog ctl")
+            ctl_sock.sendall(req)
+
+            global board_info
+            board_info = handle_ctl_resp(ctl_sock)
+            logv(f"server is running on board {board_info}")
+
+            ctl_sock.close()
+            log(f"connected to {args.host}:{CTL_PORT} (ip {ip_addr})")
+
+            logv(f"listening {proto.decode()} local port {log_port} for logs")
+            return
         except OSError:
             logv("failed to connect socket, waiting to retry")
             time.sleep(CTL_TRY_CONN_INTERVAL)
             continue
-
-        logv(f"sending sub req {req} to netlog ctl")
-        ctl_sock.sendall(req)
-
-        global board_info
-        board_info = handle_ctl_resp(ctl_sock)
-        logv(f"server is running on board {board_info}")
-
-        ctl_sock.close()
-        log(f"connected to {args.host}:{CTL_PORT} (ip {ip_addr})")
-
-        logv(f"listening {proto.decode()} local port {log_port} for logs")
-        return
 
 
 def ctl_unsub():

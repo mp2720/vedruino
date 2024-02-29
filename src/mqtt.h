@@ -1,9 +1,5 @@
 #pragma once
 
-#include "lib.h"
-
-PK_EXTERNC_BEGIN
-
 struct appMqttSensors {
     int noise[3];
     float fire[3];
@@ -34,5 +30,3 @@ extern struct appMqttSensors app_mqtt_sensors;
 void app_mqtt_init();
 void app_mqtt_sensors_send();
 void app_mqtt_send_notification(appNotificationType_t type, int flat_num);
-
-PK_EXTERNC_END

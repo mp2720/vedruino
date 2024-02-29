@@ -40,23 +40,23 @@ void setup() {
         PKLOGE("failed to connect mqtt");
 #endif // CONF_LIB_MQTT_ENABLED
 
-/* #if CONF_LIB_I2C_ENABLED */
-/*     pk_i2c_begin(PK_SW_PCA9547); */
-/* #if CONF_LIB_I2C_RUN_SCANNER */
-/*     pk_i2c_scan(); */
-/* #endif // CONF_LIB_I2C_RUN_SCANNER */
-/* #endif // CONF_LIB_I2C_ENABLED */
-    PKLOGI("start init_sensors");
+#if CONF_LIB_I2C_ENABLED
+    pk_i2c_begin(PK_SW_PCA9547);
+#if CONF_LIB_I2C_RUN_SCANNER
+    pk_i2c_scan();
+#endif // CONF_LIB_I2C_RUN_SCANNER
+#endif // CONF_LIB_I2C_ENABLED
 
 #if CONF_LIB_MQTT_ENABLED
     app_mqtt_init();
 #endif // CONF_LIB_MQTT_ENABLED
 
-    /* app_led_strip_init(); */
-    /* app_doors_init(); */
-    /* app_sensors_init(); */
+    /* app_servo_init(); */
 
-    /* init_sensors(); */
+    app_sensors_init();
+    app_ctl_init();
+
+    /* app_sensors_init(); */
     PKLOGI("setup finished");
 }
 
@@ -65,22 +65,38 @@ static TickType_t loud_sound_start;
 static int loud_sound_flat_num;
 
 void loop() {
-    PKLOGI("loop started");
+    /* PKLOGI("loop started"); */
     /* TickType_t loop_start = xTaskGetTickCount(); */
 
     /* if (loud_sound_start != 0 && loop_start - loud_sound_start > pdMS_TO_TICKS(5000)) { */
     /*     app_mqtt_send_notification(APP_NOT_SOUND, loud_sound_flat_num); */
     /* } */
 
-    /* app_sensors_poll(); */
+    /* app_servo_write(180); */
+    /* delay(500); */
+    /* app_servo_write(0); */
+
+    app_lamp_switch(true);
+    delay(1000);
+    app_lamp_switch(false);
+
+    app_sensors_poll();
+
+    /* app_servo_write(180); */
+    /* app_lamp_switch(false); */
+    /* app_pump_switch(false); */
+    /* app_lamp_switch(true); */
+    /* delay(1000); */
+    /* /1* app_servo_write(0); *1/ */
+    /* app_lamp_switch(false); */
 
     /* for (int i = 0; i < 3; ++i) { */
     /*     app_sensors.noise[3]; */
     /* } */
 
-/* #if CONF_LIB_MQTT_ENABLED */
-/*     app_mqtt_sensors_send(); */
-/* #endif // CONF_LIB_MQTT_ENABLED */
+#if CONF_LIB_MQTT_ENABLED
+    app_mqtt_sensors_send();
+#endif // CONF_LIB_MQTT_ENABLED
 
     delay(500);
 }

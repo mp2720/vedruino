@@ -1,17 +1,37 @@
 #include "app.h"
 
 #include <Arduino.h>
+#include <ESP32Servo.h>
 #include <FastLED.h>
+#include <PCA9536.h>
 
 #define NUM_LEDS 17 // указываем количество светодиодов на ленте
 #define PIN 25
 
-static CRGB leds[NUM_LEDS];
+static void led_strip_init();
+static void relay_init();
+static void relay_set(int sel, bool state);
+static void servo_init();
 
+void app_ctl_init() {
+    led_strip_init();
+    relay_init();
+    servo_init();
+}
+
+static CRGB leds[NUM_LEDS];
 static void led_strip_init() {
     FastLED.addLeds<WS2812, PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(0);
 }
+
+typedef enum {
+    APP_LED_BLACK,
+    APP_LED_RED,
+    APP_LED_YELLOW,
+    APP_LED_BLUE,
+    APP_LED_VIOLET
+} appLedStripColor_t;
 
 static void led_strip_set_color(int flat, appLedStripColor_t color) {
     int led_min, led_max;
@@ -54,13 +74,39 @@ static void led_strip_set_color(int flat, appLedStripColor_t color) {
     FastLED.show();
 }
 
+PCA9536 pca9536;
+static void relay_init() {
+    pk_i2c_lock();
+    {
+        pk_i2c_switch(5);
+        pca9536.reset();
+        pca9536.setMode(IO_OUTPUT);
+    }
+    pk_i2c_unlock();
+}
+
+static void relay_set(int sel, bool state) {
+    pk_i2c_lock();
+    {
+        pk_i2c_switch(5);
+        if (sel == 0) {
+            pca9536.setState(IO0, state ? IO_HIGH : IO_LOW);
+        } else {
+            pca9536.setState(IO1, state ? IO_HIGH : IO_LOW);
+        }
+    }
+    pk_i2c_unlock();
+}
+
 #define PUMP_RELAY_SELECT 1
+#define LAMP_RELAY_SELECT 0
 
-static bool pump_state;
+void app_pump_switch(bool state) {
+    relay_set(PUMP_RELAY_SELECT, state);
+}
 
-void app_pump_switch() {
-    pump_state = !pump_state;
-    app_relay_set(PUMP_RELAY_SELECT, pump_state);
+void app_lamp_switch(bool state) {
+    relay_set(LAMP_RELAY_SELECT, state);
 }
 
 void app_led_fire_set(int flat_num, bool flag) {
@@ -70,7 +116,7 @@ void app_led_fire_set(int flat_num, bool flag) {
     else
         col = APP_LED_BLACK;
 
-    app_led_strip_set_color(flat_num, col);
+    led_strip_set_color(flat_num, col);
 }
 
 void app_led_gas_leak_set(int flat_num, bool flag) {
@@ -80,7 +126,7 @@ void app_led_gas_leak_set(int flat_num, bool flag) {
     else
         col = APP_LED_BLACK;
 
-    app_led_strip_set_color(flat_num, col);
+    led_strip_set_color(flat_num, col);
 }
 
 void app_led_earthquake_set(bool flag) {
@@ -91,7 +137,7 @@ void app_led_earthquake_set(bool flag) {
         col = APP_LED_BLACK;
 
     for (int i = 0; i < 3; ++i)
-        app_led_strip_set_color(i, col);
+        led_strip_set_color(i, col);
 }
 
 void app_led_sound_set(int flat_num, bool flag) {
@@ -101,5 +147,15 @@ void app_led_sound_set(int flat_num, bool flag) {
     else
         col = APP_LED_BLACK;
 
-    app_led_strip_set_color(flat_num, col);
+    led_strip_set_color(flat_num, col);
+}
+
+Servo s;
+
+static void servo_init() {
+    PKLOGI_TAG("ctl", "servo attach %d", s.attach(19));
+}
+
+void app_servo_write(int deg) {
+    s.write(deg);
 }
