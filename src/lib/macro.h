@@ -41,4 +41,3 @@
 
 #define PK_ARRAYSIZE(x) (sizeof(x) / sizeof(*x))
 
-#define PK_ASSERT(x) assert(x)

@@ -367,12 +367,7 @@ static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
         /* fflush(pk_log_uartout); */
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
-        esp_execute_shared_stack_function(
-            shstack_mutex,
-            shstack,
-            SHSTACK_SIZE,
-            &flush_with_shstack
-        );
+        flush_with_shstack();
     }
     CLIENTS_MUX_GIVE;
 
