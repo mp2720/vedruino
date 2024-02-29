@@ -23,25 +23,21 @@ static void ctl_handler(PK_UNUSED char *topic, char *data, PK_UNUSED int len) {
 
     if (strcmp(ctl_name, "pump") == 0) {
         PKLOGI("pump switch");
-        // pump
+        app_pump_switch(state);
     } else if (strcmp(ctl_name, "fire") == 0) {
         PKLOGI("fire %d switch", flat_num);
         // fire x3
     } else if (strcmp(ctl_name, "door") == 0) {
         PKLOGI("door %d switch", flat_num);
-        // door x3
+        app_door_set(flat_num, state);
     } else if (strcmp(ctl_name, "street") == 0) {
         PKLOGI("street lamp switch");
-        // street
+        app_lamp_switch(state);
     } else if (strcmp(ctl_name, "gas_leak")) {
         // gas_leak
     } else {
         PKLOGE("/base/ctl unknown ctl_name='%s'", ctl_name);
     }
-}
-
-static float rand_float() {
-    return 1000.f / (float)(1 + (rand() % 1000));
 }
 
 static pkTopic_t topics[] = {
@@ -67,16 +63,6 @@ void app_mqtt_init() {
 
 // https://github.com/mp1884/nto_topics/blob/main/README.md#basesensors
 void app_mqtt_sensors_send() {
-    // clang-format off
-    /* app_mqtt_sensors = (struct appMqttSensors){ */
-    /*     .noise = {rand(), rand(), rand()}, */
-    /*     .fire = {rand_float(),rand_float(),rand_float()}, */
-    /*     .gas= {rand_float(),rand_float(),rand_float()}, */
-    /*     .amperage = rand_float(), */
-    /*     .water_flow = rand_float() */
-    /* }; */
-    // clang-format on
-
     char buf[256];
     int len = snprintf(
         buf,
@@ -126,6 +112,9 @@ void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
         break;
     case APP_NOT_SOUND:
         type_str = "sound";
+        break;
+    case APP_NOT_SOUND_ADMIN:
+        type_str = "admin";
         break;
     case APP_NOT_WATER_OVERFLOW:
         type_str = "water_overflow";

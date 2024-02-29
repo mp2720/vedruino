@@ -14,6 +14,8 @@ typedef enum appNotificationType {
     APP_NOT_EARTHQUAKE,
     // Нужен `flat_num`
     APP_NOT_SOUND,
+    // Нужен `flat_num`
+    APP_NOT_SOUND_ADMIN,
     APP_NOT_WATER_OVERFLOW,
     // Нужен `flat_num`
     APP_NOT_GAS_LEAK,

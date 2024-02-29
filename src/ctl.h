@@ -7,9 +7,19 @@ void app_ctl_init();
 void app_pump_switch(bool state);
 void app_lamp_switch(bool state);
 
-void app_led_fire_set(int flat_num, bool flag);
-void app_led_gas_leak_set(int flat_num, bool flag);
-void app_led_earthquake_set(bool flag);
-void app_led_sound_set(int flat_num, bool flag);
+#define APP_LEDS_NUM 17
 
-void app_servo_write(int deg);
+typedef enum {
+    APP_LED_BLACK,
+    APP_LED_RED,
+    APP_LED_YELLOW,
+    APP_LED_BLUE,
+    APP_LED_VIOLET
+} appLedStripColor_t;
+
+void app_led_strip_set_from_to(int from, int to, appLedStripColor_t color);
+void app_led_strip_set_flat(int flat, appLedStripColor_t color);
+
+void app_servo_write(int flat_num, int deg);
+void app_door_set(int flat_num, bool do_open);
+void app_open_all_doors();

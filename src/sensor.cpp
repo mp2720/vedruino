@@ -117,6 +117,7 @@ void app_sensors_calibrate_fire() {
 }
 
 static void fire_init_one() {
+    /* fire.begin(); */
     Wire.beginTransmission(FIRE_ADDR);
     Wire.write(0x81);       // Регистр времени интегрирования АЦП
     Wire.write(0b00111111); // 180 мс, 65535 циклов
@@ -163,8 +164,12 @@ static void fire_poll_one(int i) {
         sensor_data[2] = Wire.read();
         sensor_data[3] = Wire.read();
     }
-
-    app_sensors.fire[i] = (sensor_data[3] * 256.0 + sensor_data[2]) / fire_default_ir[i];
+    float v = (sensor_data[3] * 256.0 + sensor_data[2]) / fire_default_ir[i];
+    if (v == INFINITY || v == NAN)
+        v = 0;
+    app_sensors.fire[i] = v;
+    /* PKLOGI("2fire %d %d %d %d", sensor_data[0], sensor_data[1], sensor_data[2], sensor_data[3]); */
+    /* PKLOGI("fire %f %f", fire.ir_data, fire.vis_data); */
 }
 
 static void fire_poll() {
@@ -293,9 +298,7 @@ static MCP3021 mcp3021;
 
 static void water_overflow_init() {
     pk_i2c_lock();
-    {
-        mcp3021.begin(0x4d);
-    }
+    { mcp3021.begin(0x4d); }
     pk_i2c_unlock();
 }
 
