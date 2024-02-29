@@ -82,5 +82,5 @@ void loop() {
 /*     app_mqtt_sensors_send(); */
 /* #endif // CONF_LIB_MQTT_ENABLED */
 
-    /* delay(5000); */
+    delay(500);
 }

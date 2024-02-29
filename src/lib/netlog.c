@@ -367,12 +367,7 @@ static int stdout_flush(PK_UNUSED void *cookie, const char *buf, int n) {
         /* fflush(pk_log_uartout); */
         flush_with_shstack_n = n;
         flush_with_shstack_buf_ptr = buf;
-        esp_execute_shared_stack_function(
-            shstack_mutex,
-            shstack,
-            SHSTACK_SIZE,
-            &flush_with_shstack
-        );
+        flush_with_shstack();
     }
     CLIENTS_MUX_GIVE;
 
@@ -384,7 +379,7 @@ static void flush_with_shstack(void) {
     // avoid recursion
     stdout = pk_log_uartout;
 
-    /* esp_rom_printf("sending %d\n", flush_with_shstack_n); */
+    /* PKLOGD_UART("sending %.*s", flush_with_shstack_n, flush_with_shstack_buf_ptr); */
 
     size_t sent = 0;
     while (sent < (size_t)flush_with_shstack_n) {
