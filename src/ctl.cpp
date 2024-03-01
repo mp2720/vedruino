@@ -62,13 +62,13 @@ void app_led_strip_set_flat(int flat, appLedStripColor_t color) {
     PKLOGV("setting led for flat %d to %d", flat, color);
 
     int led_min, led_max;
-    if (flat == 1) {
+    if (flat == 3) {
         led_min = 0;
         led_max = 3;
     } else if (flat == 2) {
         led_min = 6;
         led_max = 9;
-    } else if (flat == 3) {
+    } else if (flat == 1) {
         led_min = 12;
         led_max = 15;
     } else {

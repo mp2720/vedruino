@@ -9,13 +9,13 @@ static const char *TAG = "main";
 
 void setup() {
 #if CONF_LIB_I2C_ENABLED
-    /* pk_i2c_begin(PK_SW_PCA9547); */
+    pk_i2c_begin(PK_SW_PCA9547);
 #if CONF_LIB_I2C_RUN_SCANNER
-    /* pk_i2c_scan(); */
+    pk_i2c_scan();
 #endif // CONF_LIB_I2C_RUN_SCANNER
 #endif // CONF_LIB_I2C_ENABLED
 
-    /* app_ctl_init(); */
+    app_ctl_init();
 
     delay(CONF_MISC_STARTUP_DELAY);
 
@@ -54,15 +54,14 @@ void setup() {
     app_mqtt_init();
 #endif // CONF_LIB_MQTT_ENABLED
 
-    /* app_sensors_init(); */
-    app_water_flow_measure_init();
+    app_sensors_init();
 
     PKLOGI("setup finished");
 }
 
 #define AXEL_THRESHOLD 0.5
-#define SOUND_THRESHOLD 500
-#define GAS_THRESHOLD 600
+#define SOUND_THRESHOLD 70
+#define GAS_THRESHOLD 800
 #define WATER_OVERFLOW_THRESHOLD 400
 #define FIRE_THRESHOLD 4
 
@@ -77,38 +76,57 @@ static TickType_t earthquake_start;
 static int cont_event_flat_num;
 
 static void check_events(TickType_t loop_start) {
+    int noise_max_flat_num, noise_max = 0;
     for (int i = 0; i < 3; ++i) {
-        int flat_num = i + 1;
-
-        // noise
-        if (app_sensors.noise[i] > SOUND_THRESHOLD) {
-            PKLOGW("loud sound start in flat %d", flat_num);
-            loud_noise_start = loop_start;
-            cont_event_flat_num = flat_num;
-            app_mqtt_send_notification(APP_NOT_SOUND, flat_num);
-            goto cont_event_occurred;
+        if (noise_max < app_sensors.noise[i]) {
+            noise_max = app_sensors.noise[i];
+            noise_max_flat_num = i + 1;
         }
+    }
 
-        // gas
-        if (app_sensors.gas[i] > SOUND_THRESHOLD) {
-            PKLOGW("gas leak in flat %d", flat_num);
-            gas_leak_start = loop_start;
-            cont_event_flat_num = flat_num;
-            app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, APP_LED_YELLOW);
-            app_open_all_doors();
-            app_mqtt_send_notification(APP_NOT_GAS_LEAK, flat_num);
-            goto cont_event_occurred;
+    int gas_max_flat_num;
+    float gas_max = 0;
+    for (int i = 0; i < 3; ++i) {
+        if (gas_max < app_sensors.gas[i]) {
+            gas_max = app_sensors.gas[i];
+            gas_max_flat_num = i + 1;
         }
+    }
 
-        // fire
-        if (app_sensors.fire[i] > FIRE_THRESHOLD) {
-            PKLOGW("fire in flat %d", flat_num);
-            fire_start = loop_start;
-            cont_event_flat_num = flat_num;
-            app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, APP_LED_BLUE);
-            app_mqtt_send_notification(APP_NOT_FIRE, flat_num);
-            goto cont_event_occurred;
+    int fire_max_flat_num;
+    float fire_max = 0;
+    for (int i = 0; i < 3; ++i) {
+        if (fire_max < app_sensors.fire[i]) {
+            fire_max = app_sensors.fire[i];
+            fire_max_flat_num = i + 1;
         }
+    }
+
+    if (noise_max > SOUND_THRESHOLD) {
+        PKLOGW("loud sound start in flat %d", noise_max_flat_num);
+        loud_noise_start = loop_start;
+        cont_event_flat_num = noise_max_flat_num;
+        app_mqtt_send_notification(APP_NOT_SOUND, noise_max_flat_num);
+        goto cont_event_occurred;
+    }
+
+    if (gas_max > GAS_THRESHOLD) {
+        PKLOGW("gas leak in flat %d", gas_max_flat_num);
+        gas_leak_start = loop_start;
+        cont_event_flat_num = gas_max_flat_num;
+        app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, APP_LED_YELLOW);
+        app_open_all_doors();
+        app_mqtt_send_notification(APP_NOT_GAS_LEAK, gas_max_flat_num);
+        goto cont_event_occurred;
+    }
+
+    if (fire_max > FIRE_THRESHOLD) {
+        PKLOGW("fire in flat %d", fire_max_flat_num);
+        fire_start = loop_start;
+        cont_event_flat_num = fire_max_flat_num;
+        app_led_strip_set_from_to(0, APP_LEDS_NUM - 1, APP_LED_BLUE);
+        app_mqtt_send_notification(APP_NOT_FIRE, fire_max_flat_num);
+        goto cont_event_occurred;
     }
 
     // axel
@@ -178,25 +196,27 @@ static void check_cont_events(TickType_t loop_start) {
     }
 }
 
-#define LOOP_TICK_MS 500
+#define LOOP_TICK_MS 400
+#define POLLS_PER_SEND 3
+
+static int send_cnt;
 
 void loop() {
     TickType_t loop_start = xTaskGetTickCount();
 
-    printf("zalup\n");
+    send_cnt = (send_cnt + 1) % POLLS_PER_SEND;
 
-    PKLOGI("%lld", app_water_flow_measure_get());
+    app_sensors_poll();
 
-    /* app_sensors_poll(); */
-
-    /* if (!cont_event_active) { */
-    /*     check_events(loop_start); */
-    /* } else { */
-    /*     check_cont_events(loop_start); */
-    /* } */
+    if (!cont_event_active) {
+        check_events(loop_start);
+    } else {
+        check_cont_events(loop_start);
+    }
 
 #if CONF_LIB_MQTT_ENABLED
-    app_mqtt_sensors_send();
+    if (send_cnt == 0)
+        app_mqtt_sensors_send();
 #endif // CONF_LIB_MQTT_ENABLED
 
     vTaskDelay(pdMS_TO_TICKS(LOOP_TICK_MS));

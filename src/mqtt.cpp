@@ -101,7 +101,10 @@ void app_mqtt_sensors_send() {
 
 // https://github.com/mp1884/nto_topics/blob/main/README.md#basenots
 void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
+    char buf[64];
     const char *type_str;
+    const char *topic = NULL;
+    int len;
     switch (type) {
     case APP_NOT_EARTHQUAKE:
         type_str = "earthquake";
@@ -120,26 +123,33 @@ void app_mqtt_send_notification(appNotificationType_t type, int flat_num) {
         break;
     case APP_NOT_GAS_LEAK_CALL_ROBOT:
         type_str = "gas_leak_call_robot";
+        len = sprintf(buf, "%d", flat_num);
+        topic = "/robot/gas";
         break;
     case APP_NOT_FIRE:
         type_str = "fire";
         break;
     case APP_NOT_FIRE_CALL_ROBOT:
         type_str = "fire_call_robot";
+        len = sprintf(buf, "%d", flat_num);
+        topic = "/robot/fire";
         break;
     }
 
-    char buf[64];
-    int len = snprintf(buf, PK_ARRAYSIZE(buf), "flat_num:%d;not_type:%s", flat_num, type_str);
+    if (topic == NULL) {
+        len = snprintf(buf, PK_ARRAYSIZE(buf), "flat_num:%d;not_type:%s", flat_num, type_str);
+        topic = "/base/nots";
+    }
+
     if (len < 0) {
-        PKLOGE("/base/nots sprintf() failed: %s", strerror(errno));
+        PKLOGE("snprintf() failed: %s", strerror(errno));
         return;
     }
     if (len >= (int)PK_ARRAYSIZE(buf)) {
-        PKLOGE("/base/nots buf is too small");
+        PKLOGE("buf for snprintf() is too small");
         return;
     }
-    pk_mqtt_publish("/base/nots", buf, len, 2, false);
+    pk_mqtt_publish(topic, buf, len, 2, false);
 }
 
 #endif // CONF_LIB_MQTT_ENABLED

@@ -19,8 +19,8 @@ appSensorData_t app_sensors;
 
 #define AMPERAGE_PIN A7
 #define AMPERAGE_RANGE_END (7 * 1e3)
-#define WATER_FLOW_MEASURE_PIN 17
-#define WATER_FLOW_MEASURE_TICK_FACTOR 385
+#define WATER_FLOW_MEASURE_PIN 26
+#define WATER_FLOW_MEASURE_TICK_FACTOR 128
 
 static void poll_noise();
 static void fire_init();
@@ -50,14 +50,34 @@ void app_sensors_poll() {
     gas_poll();
     axel_poll();
     water_overflow_poll();
+    water_flow_poll();
     poll_noise();
     amperage_poll();
+}
+
+#define BUFSIZE 9
+typedef struct {
+    float vals[BUFSIZE];
+    float sum;
+    int n;
+    int i;
+} appAvgBuf;
+
+static float upd_avg(appAvgBuf *buf, float val) {
+    buf->sum = buf->sum - buf->vals[buf->i] + val;
+    buf->vals[buf->i] = val;
+    buf->i = (buf->i + 1) % BUFSIZE;
+    buf->n = PK_MAX(buf->n, BUFSIZE);
+    return buf->sum / buf->n;
 }
 
 // датчик звука
 static MCP3221 noise1(0x4e);
 static MCP3221 noise2(0x4e);
 static MCP3221 noise3(0x4e);
+
+appAvgBuf sound_avg[3];
+
 static void poll_noise() {
     float res[3];
 
@@ -82,11 +102,9 @@ static void poll_noise() {
         PKLOGE("Noise sensor on 0x4e - 7 err");
     }
 
-    PKLOGI("%f %f %f", res[0], res[1], res[2]);
-
-    app_sensors.noise[0] = (int)fabs(1250.f - res[0]);
-    app_sensors.noise[1] = (int)fabs(1250.f - res[1]);
-    app_sensors.noise[2] = (int)fabs(1250.f - res[2]);
+    app_sensors.noise[0] = upd_avg(&sound_avg[0], (float)fabs(1250.f - res[0]));
+    app_sensors.noise[1] = upd_avg(&sound_avg[1], (float)fabs(1250.f - res[1]));
+    app_sensors.noise[2] = upd_avg(&sound_avg[2], (float)fabs(1250.f - res[2]));
 }
 
 #define FIRE_ADDR 0x39
@@ -165,6 +183,11 @@ static void fire_init() {
 
 static void fire_poll_one(int i) {
     unsigned int sensor_data[4];
+
+    if (fire_default_ir[i] == 0) {
+        fire_calibrate_one(i);
+        return;
+    }
 
     Wire.beginTransmission(sensor_addr);
     Wire.write(0x94); // Начальный адрес регистров данных
@@ -295,6 +318,8 @@ static void gas_poll() {
     app_sensors.gas[0] = sgp30_0.CO2;
     app_sensors.gas[1] = sgp30_1.CO2;
     app_sensors.gas[2] = sgp30_2.CO2;
+
+    /* PKLOGI("gas: %f, %f, %f", app_sensors.gas[0], app_sensors.gas[1], app_sensors.gas[2]); */
 }
 
 // протечка
@@ -317,6 +342,7 @@ static StaticSemaphore_t cnt_sem_st;
 static SemaphoreHandle_t cnt_sem;
 
 static uint64_t cnt;
+static bool flag;
 
 static void IRAM_ATTR isr_handler(PK_UNUSED void *arg) {
     if (xSemaphoreTakeFromISR(cnt_sem, NULL)) {
@@ -336,7 +362,8 @@ static void water_flow_init() {
     io_conf.intr_type = GPIO_INTR_POSEDGE;
     io_conf.pin_bit_mask = 1 << WATER_FLOW_MEASURE_PIN;
     io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    /* io_conf.pull_up_en = GPIO_PULLUP_ENABLE; */
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
 
     ESP_ERROR_CHECK(gpio_config(&io_conf));
     ESP_ERROR_CHECK(gpio_set_intr_type((gpio_num_t)WATER_FLOW_MEASURE_PIN, GPIO_INTR_POSEDGE));
@@ -353,6 +380,6 @@ static void water_flow_poll() {
 }
 
 static void amperage_poll() {
-    float f = (float)analogRead(AMPERAGE_PIN);
+    float f = analogRead(AMPERAGE_PIN);
     app_sensors.amperage = map(f, 0, AMPERAGE_RANGE_END);
 }
